@@ -182,10 +182,20 @@ def register_parent():
             flash("Name must contain only alphabet letters and spaces.", "danger")
             return redirect(url_for("register_parent"))
 
-        hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-
+        # Check if email already exists
         conn = get_db_conn()
         cursor = conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE email=%s", (email,))
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            flash("This email address is already registered. Please use a different email or try logging in.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for("register_parent"))
+
+        hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+
         cursor.execute(
             """
             INSERT INTO users (name, email, password, role)
@@ -237,10 +247,20 @@ def register_admin():
             flash("Password must be at least 8 characters long and include one uppercase letter, one lowercase letter, and one symbol.", "warning")
             return redirect(url_for('register_admin'))
 
-        hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-
+        # Check if email already exists
         conn = get_db_conn()
         cursor = conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE email=%s", (email,))
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            flash("This email address is already registered. Please use a different email or try logging in.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for("register_admin"))
+
+        hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+
         cursor.execute(
             """
             INSERT INTO users (name, email, password, role)
@@ -388,6 +408,14 @@ def reset_password(token):
         if new_password != confirm_password:
             flash(
                 "New password and confirmation do not match.", "danger"
+            )
+            return redirect(url_for("reset_password", token=token))
+
+        # Validate password strength
+        if not is_strong_password(new_password):
+            flash(
+                "Password must be at least 8 characters long and include one uppercase letter, one lowercase letter, and one symbol.",
+                "warning"
             )
             return redirect(url_for("reset_password", token=token))
 
