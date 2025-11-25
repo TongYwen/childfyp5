@@ -531,11 +531,11 @@ def children():
             conn.close()
             return render_template("select_child.html", children=children_list)
 
-        # Validate age is a positive integer within reasonable range (1-18)
+        # Validate age is within preschool range (0-5 years, where 0 represents 2-11 months)
         try:
             age_int = int(age)
-            if age_int < 1 or age_int > 18:
-                flash("Age must be between 1 and 18.", "danger")
+            if age_int < 0 or age_int > 5:
+                flash("Age must be between 0 and 5 years (preschool age range).", "danger")
                 cursor.execute(
                     "SELECT * FROM children WHERE parent_id=%s", (current_user.id,)
                 )
@@ -684,11 +684,11 @@ def add_child():
         flash("Child name must contain only alphabet letters and spaces.", "danger")
         return redirect(url_for("profile"))
 
-    # Validate age is a positive integer within reasonable range (1-18)
+    # Validate age is within preschool range (0-5 years, where 0 represents 2-11 months)
     try:
         age_int = int(age)
-        if age_int < 1 or age_int > 18:
-            flash("Age must be between 1 and 18.", "danger")
+        if age_int < 0 or age_int > 5:
+            flash("Age must be between 0 and 5 years (preschool age range).", "danger")
             return redirect(url_for("profile"))
     except (ValueError, TypeError):
         flash("Age must be a valid number.", "danger")
@@ -754,11 +754,11 @@ def edit_child(child_id):
         flash("Child name must contain only alphabet letters and spaces.", "danger")
         return redirect(url_for("profile"))
 
-    # Validate age is a positive integer within reasonable range (1-18)
+    # Validate age is within preschool range (0-5 years, where 0 represents 2-11 months)
     try:
         age_int = int(age)
-        if age_int < 1 or age_int > 18:
-            flash("Age must be between 1 and 18.", "danger")
+        if age_int < 0 or age_int > 5:
+            flash("Age must be between 0 and 5 years (preschool age range).", "danger")
             return redirect(url_for("profile"))
     except (ValueError, TypeError):
         flash("Age must be a valid number.", "danger")
