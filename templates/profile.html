@@ -80,7 +80,17 @@
                 <td>{{ child.gender }}</td>
                 <td>{{ child.dob }}</td>
                 <td>{{ child.notes or "-" }}</td>
-                
+                <td class="text-center">
+                  <button class="btn btn-sm btn-warning me-1" data-bs-toggle="modal"
+                          data-bs-target="#editChildModal{{ child.id }}" title="Edit">
+                    <i class="fas fa-pencil-alt"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger delete-btn"
+                          data-url="{{ url_for('delete_child', child_id=child.id) }}" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+
               </tr>
 
               <!-- Edit Child Modal -->
