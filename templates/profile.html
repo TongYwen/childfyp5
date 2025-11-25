@@ -106,7 +106,15 @@
                         <div class="row">
                           <div class="col-md-4 mb-3">
                             <label class="form-label">Age</label>
-                            <input type="number" name="age" value="{{ child.age }}" class="form-control" required>
+                            <select name="age" class="form-select" required>
+                              <option value="">Select Age</option>
+                              <option value="0" {% if child.age == 0 %}selected{% endif %}>0 (2-11 months)</option>
+                              <option value="1" {% if child.age == 1 %}selected{% endif %}>1 year</option>
+                              <option value="2" {% if child.age == 2 %}selected{% endif %}>2 years</option>
+                              <option value="3" {% if child.age == 3 %}selected{% endif %}>3 years</option>
+                              <option value="4" {% if child.age == 4 %}selected{% endif %}>4 years</option>
+                              <option value="5" {% if child.age == 5 %}selected{% endif %}>5 years</option>
+                            </select>
                           </div>
                           <div class="col-md-4 mb-3">
                             <label class="form-label">Grade Level</label>
@@ -230,7 +238,15 @@
           <div class="row">
             <div class="col-md-4 mb-3">
               <label class="form-label">Age</label>
-              <input type="number" name="age" class="form-control" required>
+              <select name="age" class="form-select" required>
+                <option value="">Select Age</option>
+                <option value="0">0 (2-11 months)</option>
+                <option value="1">1 year</option>
+                <option value="2">2 years</option>
+                <option value="3">3 years</option>
+                <option value="4">4 years</option>
+                <option value="5">5 years</option>
+              </select>
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label">Grade Level</label>
