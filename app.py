@@ -216,7 +216,7 @@ def register_admin():
         password = request.form["password"]
         confirm_password = request.form.get("confirm_password", "")
 
-        if not all([name, email, password, confirm_password, admin_passkey]):
+        if not all([name, email, password, confirm_password, key]):
             flash("Please fill all fields", "warning")
             return redirect(url_for('register_admin'))
 
@@ -531,6 +531,50 @@ def children():
             conn.close()
             return render_template("select_child.html", children=children_list)
 
+        # Validate age is a positive integer within reasonable range (1-18)
+        try:
+            age_int = int(age)
+            if age_int < 1 or age_int > 18:
+                flash("Age must be between 1 and 18.", "danger")
+                cursor.execute(
+                    "SELECT * FROM children WHERE parent_id=%s", (current_user.id,)
+                )
+                children_list = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                return render_template("select_child.html", children=children_list)
+        except (ValueError, TypeError):
+            flash("Age must be a valid number.", "danger")
+            cursor.execute(
+                "SELECT * FROM children WHERE parent_id=%s", (current_user.id,)
+            )
+            children_list = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            return render_template("select_child.html", children=children_list)
+
+        # Validate DOB is in the past
+        try:
+            dob_date = datetime.strptime(dob, "%Y-%m-%d").date()
+            if dob_date >= date.today():
+                flash("Date of birth must be in the past.", "danger")
+                cursor.execute(
+                    "SELECT * FROM children WHERE parent_id=%s", (current_user.id,)
+                )
+                children_list = cursor.fetchall()
+                cursor.close()
+                conn.close()
+                return render_template("select_child.html", children=children_list)
+        except ValueError:
+            flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
+            cursor.execute(
+                "SELECT * FROM children WHERE parent_id=%s", (current_user.id,)
+            )
+            children_list = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            return render_template("select_child.html", children=children_list)
+
         cursor.execute(
             """
             INSERT INTO children
@@ -592,8 +636,27 @@ def edit_profile():
         flash("Name must contain only alphabet letters and spaces.", "danger")
         return redirect(url_for("profile"))
 
+    # Validate email format
+    if not EMAIL_REGEX.match(email):
+        flash("Please enter a valid email address.", "danger")
+        return redirect(url_for("profile"))
+
     conn = get_db_conn()
     cursor = conn.cursor()
+
+    # Check if email already exists for a different user
+    cursor.execute(
+        "SELECT id FROM users WHERE email=%s AND id!=%s",
+        (email, current_user.id),
+    )
+    existing_user = cursor.fetchone()
+
+    if existing_user:
+        flash("This email address is already registered to another account.", "danger")
+        cursor.close()
+        conn.close()
+        return redirect(url_for("profile"))
+
     cursor.execute(
         "UPDATE users SET name=%s, email=%s WHERE id=%s",
         (name, email, current_user.id),
@@ -616,9 +679,29 @@ def add_child():
     gender = request.form["gender"]
     notes = request.form.get("notes", "")
 
-     # Validate name contains only alphabet letters
+    # Validate name contains only alphabet letters
     if not is_valid_name(name):
         flash("Child name must contain only alphabet letters and spaces.", "danger")
+        return redirect(url_for("profile"))
+
+    # Validate age is a positive integer within reasonable range (1-18)
+    try:
+        age_int = int(age)
+        if age_int < 1 or age_int > 18:
+            flash("Age must be between 1 and 18.", "danger")
+            return redirect(url_for("profile"))
+    except (ValueError, TypeError):
+        flash("Age must be a valid number.", "danger")
+        return redirect(url_for("profile"))
+
+    # Validate DOB is in the past
+    try:
+        dob_date = datetime.strptime(dob, "%Y-%m-%d").date()
+        if dob_date >= date.today():
+            flash("Date of birth must be in the past.", "danger")
+            return redirect(url_for("profile"))
+    except ValueError:
+        flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
         return redirect(url_for("profile"))
 
     conn = get_db_conn()
@@ -671,6 +754,26 @@ def edit_child(child_id):
         flash("Child name must contain only alphabet letters and spaces.", "danger")
         return redirect(url_for("profile"))
 
+    # Validate age is a positive integer within reasonable range (1-18)
+    try:
+        age_int = int(age)
+        if age_int < 1 or age_int > 18:
+            flash("Age must be between 1 and 18.", "danger")
+            return redirect(url_for("profile"))
+    except (ValueError, TypeError):
+        flash("Age must be a valid number.", "danger")
+        return redirect(url_for("profile"))
+
+    # Validate DOB is in the past
+    try:
+        dob_date = datetime.strptime(dob, "%Y-%m-%d").date()
+        if dob_date >= date.today():
+            flash("Date of birth must be in the past.", "danger")
+            return redirect(url_for("profile"))
+    except ValueError:
+        flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
+        return redirect(url_for("profile"))
+
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute(
@@ -720,19 +823,44 @@ def academic_progress():
         year = request.form.get("year", type=int)
         month = request.form.get("month", type=int)
 
-        if subject and score is not None and year and month:
-            record_date = date(year, month, 1)
-            cursor.execute(
-                """
-                INSERT INTO academic_scores (child_id, subject, score, date)
-                VALUES (%s, %s, %s, %s)
-                """,
-                (child_id, subject, score, record_date),
-            )
-            conn.commit()
-            flash("Academic record added successfully!", "success")
-        else:
+        # Validate all fields are present
+        if not (subject and score is not None and year and month):
             flash("Please fill in all fields.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for("academic_progress"))
+
+        # Validate score range (0-100)
+        if score < 0 or score > 100:
+            flash("Score must be between 0 and 100.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for("academic_progress"))
+
+        # Validate year range (2000-2100)
+        if year < 2000 or year > 2100:
+            flash("Year must be between 2000 and 2100.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for("academic_progress"))
+
+        # Validate month range (1-12)
+        if month < 1 or month > 12:
+            flash("Month must be between 1 and 12.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for("academic_progress"))
+
+        record_date = date(year, month, 1)
+        cursor.execute(
+            """
+            INSERT INTO academic_scores (child_id, subject, score, date)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (child_id, subject, score, record_date),
+        )
+        conn.commit()
+        flash("Academic record added successfully!", "success")
 
         cursor.close()
         conn.close()
