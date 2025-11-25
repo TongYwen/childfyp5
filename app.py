@@ -216,7 +216,7 @@ def register_admin():
         password = request.form["password"]
         confirm_password = request.form.get("confirm_password", "")
 
-        if not all([name, email, password, confirm_password, admin_passkey]):
+        if not all([name, email, password, confirm_password, key]):
             flash("Please fill all fields", "warning")
             return redirect(url_for('register_admin'))
 
