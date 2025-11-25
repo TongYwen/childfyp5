@@ -182,6 +182,21 @@ def register_parent():
             flash("Name must contain only alphabet letters and spaces.", "danger")
             return redirect(url_for("register_parent"))
 
+        # Check for duplicate email
+        conn = get_db_conn()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            cursor.close()
+            conn.close()
+            flash("An account with this email already exists.", "danger")
+            return redirect(url_for("register_parent"))
+
+        cursor.close()
+        conn.close()
+
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
 
         conn = get_db_conn()
@@ -236,6 +251,21 @@ def register_admin():
         if not is_strong_password(password):
             flash("Password must be at least 8 characters long and include one uppercase letter, one lowercase letter, and one symbol.", "warning")
             return redirect(url_for('register_admin'))
+
+        # Check for duplicate email
+        conn = get_db_conn()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            cursor.close()
+            conn.close()
+            flash("An account with this email already exists.", "danger")
+            return redirect(url_for("register_admin"))
+
+        cursor.close()
+        conn.close()
 
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
 
