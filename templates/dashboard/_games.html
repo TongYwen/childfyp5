@@ -1,0 +1,200 @@
+<style>
+  .games-hero {
+    background: linear-gradient(135deg, #f9f1ff, #e3f2ff);
+    border-radius: 1.2rem;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .games-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .games-hero-icon {
+    font-size: 2.6rem;
+  }
+
+  .games-hero-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .games-hero-sub {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .games-hero-pill {
+    background: #fff;
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.85rem;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .mini-game-card {
+    border-radius: 1.2rem;
+    border: none;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  .mini-game-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+  }
+
+  .mini-game-icon {
+    font-size: 2.2rem;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f4f3ff;
+    margin-right: 0.6rem;
+  }
+
+  .mini-game-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  .mini-game-desc {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .mini-game-badges {
+    margin-top: 0.4rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .mini-game-badge {
+    border-radius: 999px;
+    font-size: 0.78rem;
+    padding: 0.2rem 0.65rem;
+  }
+
+  .mini-game-footer {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .btn-gradient-game {
+    background: linear-gradient(90deg, #6a5af9, #ff8ac3);
+    border: none;
+    border-radius: 999px;
+    padding: 0.45rem 1.25rem;
+    color: #fff;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(106, 90, 249, 0.35);
+    font-size: 0.9rem;
+  }
+
+  .btn-gradient-game:hover {
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 7px 18px rgba(106, 90, 249, 0.5);
+  }
+
+  .mini-game-small {
+    font-size: 0.8rem;
+    color: #888;
+  }
+</style>
+
+<h3 class="mb-1">Mini Educational Games for {{ selected_child.name }}</h3>
+<p class="text-muted mb-3" style="font-size: 0.9rem;">
+  Fun games designed to support early learning and track progress.
+</p>
+
+<div class="games-hero">
+  <div class="games-hero-left">
+    <div class="games-hero-icon">🕹️</div>
+    <div>
+      <div class="games-hero-title">Play &amp; Learn</div>
+      <div class="games-hero-sub">
+        Short, focused games that help practise counting, vocabulary, and spelling.
+      </div>
+    </div>
+  </div>
+  <div class="d-none d-md-block">
+    <div class="games-hero-pill">
+      🎯 Tip: Encourage your child to try <strong>all</strong> the games each week.
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  {% for game in games %}
+    <div class="col-md-4">
+      <div class="card mini-game-card h-100">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex align-items-start mb-2">
+            <div class="mini-game-icon">
+              {% if game.game_key == 'counting_animals' %}
+                🐾
+              {% elif game.game_key == 'vocab_animals' %}
+                📚
+              {% elif game.game_key == 'spelling_animals' %}
+                ✏️
+              {% else %}
+                🎮
+              {% endif %}
+            </div>
+            <div>
+              <div class="mini-game-title">{{ game.title }}</div>
+              <div class="mini-game-desc">
+                {{ game.description }}
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-game-badges">
+            {% if game.age_min and game.age_max %}
+              <span class="badge bg-light text-secondary mini-game-badge">
+                Age {{ game.age_min }} – {{ game.age_max }} yrs
+              </span>
+            {% endif %}
+            {% if game.difficulty %}
+              <span class="badge bg-primary-subtle text-primary mini-game-badge text-capitalize">
+                {{ game.difficulty }}
+              </span>
+            {% endif %}
+            <span class="badge bg-warning-subtle text-warning mini-game-badge">
+              🌟 Short &amp; child-friendly
+            </span>
+          </div>
+
+          <div class="mini-game-footer mt-auto">
+            <div class="mini-game-small">
+              Practice time: ~3–5 minutes
+            </div>
+            <a href="{{ url_for('play_mini_game', game_id=game.id) }}"
+               class="btn btn-gradient-game">
+              Play Game
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="col-12">
+      <div class="alert alert-info">
+        No games are configured yet. Please ask the administrator to add some games.
+      </div>
+    </div>
+  {% endfor %}
+</div>

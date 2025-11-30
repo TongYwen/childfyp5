@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Edit Mini Game</h3>
+    <p class="text-muted">Update game details or hide the game from children.</p>
+
+    <form method="post" class="mt-3" style="max-width: 600px;">
+        <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control"
+                   value="{{ game.title }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Game Key</label>
+            <input type="text" name="game_key" class="form-control"
+                   value="{{ game.game_key }}" required>
+            <div class="form-text">
+                Must match the keys used in your code:
+                <code>counting_animals</code>,
+                <code>vocab_animals</code>,
+                <code>spelling_animals</code>.
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3">{{ game.description }}</textarea>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Min Age</label>
+                <input type="number" name="age_min" class="form-control"
+                       value="{{ game.age_min }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Max Age</label>
+                <input type="number" name="age_max" class="form-control"
+                       value="{{ game.age_max }}">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Difficulty</label>
+            <select name="difficulty" class="form-select">
+                <option value="easy"   {% if game.difficulty == 'easy' %}selected{% endif %}>Easy</option>
+                <option value="medium" {% if game.difficulty == 'medium' %}selected{% endif %}>Medium</option>
+                <option value="hard"   {% if game.difficulty == 'hard' %}selected{% endif %}>Hard</option>
+            </select>
+        </div>
+
+        <div class="form-check form-switch mb-4">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   id="is_active" name="is_active" value="1"
+                   {% if game.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="is_active">
+                Show this game to children (Active)
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{{ url_for('admin_games') }}" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+</div>
+{% endblock %}

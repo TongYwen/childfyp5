@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Edit Resource</h3>
+
+    <form method="POST" action="{{ url_for('admin_edit_resource', resource_id=resource.id) }}">
+        <div class="mb-3">
+            <label class="form-label">Title *</label>
+            <input type="text" name="title" class="form-control"
+                   value="{{ resource.title }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Type *</label>
+            <select name="type" class="form-select" required>
+                {% for t in resource_types %}
+                    <option value="{{ t }}"
+                        {% if resource.type == t %}selected{% endif %}>
+                        {{ t|capitalize }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3">{{ resource.description }}</textarea>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Min Age</label>
+                <input type="number" name="age_min" class="form-control" min="0"
+                       value="{{ resource.age_min or '' }}">
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Max Age</label>
+                <input type="number" name="age_max" class="form-control" min="0"
+                       value="{{ resource.age_max or '' }}">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">URL / Link</label>
+            <input type="url" name="url" class="form-control"
+                   value="{{ resource.url or '' }}">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{{ url_for('admin_resources') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

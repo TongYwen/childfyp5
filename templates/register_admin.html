@@ -72,27 +72,11 @@
          <a href="{{ url_for('login') }}" class="auth-link" style="color: #0e88b4;"><small>Already have an account?</small></a>
         </div>
 
-       </div>
+        </div>
+      </div>
+    </div>
 
   </div>
 </div>
-
-<script>
-
-  function togglePassword(inputId, iconId) {
-    const input = document.getElementById(inputId);
-    const icon = document.getElementById(iconId);
-
-    if (input.type === 'password') {
-      input.type = 'text';
-      icon.classList.remove('fa-eye');
-      icon.classList.add('fa-eye-slash');
-    } else {
-      input.type = 'password';
-      icon.classList.remove('fa-eye-slash');
-      icon.classList.add('fa-eye');
-    }
-  }
-</script>
 
 {% endblock %}

@@ -2,7 +2,12 @@
 {% block content %}
 <div class="container mt-4">
     <h3>Create New Test</h3>
-    <form method="POST" action="{{ url_for('admin_create_test') }}">
+    <h3>Create New Parent Questionnaire</h3>
+    <p class="text-muted">
+    Parents will answer these questions about their child's learning behaviour.
+    </p>
+
+    <form method="POST" action="{{ url_for('admin_create_test') }}" enctype="multipart/form-data">
         <div class="mb-3">
             <label class="form-label">Test Name</label>
             <input type="text" name="name" class="form-control" required>
@@ -11,16 +16,29 @@
         <h6>Questions</h6>
         <div id="questions-container">
             <div class="input-group mb-2 question-item">
+
+                <!-- Question -->
                 <input type="text" name="questions[]" class="form-control" placeholder="Enter question" required>
 
+                
+                <!-- Category -->
                 <select name="categories[]" class="form-select" style="max-width:150px;">
                     <option value="visual">Visual</option>
-                    <option value="reading" selected>Reading</option>
-                    <option value="auditory">Auditory</option>
-                </select>
+                     <option value="auditory">Auditory</option>
+                    <option value="reading">Reading/Writing</option>
+                    <option value="kinesthetic">Kinesthetic</option>
+                    </select>
 
-                    <button type="button" class="btn btn-danger remove-question">×</button>
+
+                <!-- Media input -->
+                <input type="file" name="question_media[]" class="form-control" style="max-width:230px"
+                    accept="image/*,audio/*">
+
+                <!-- Remove -->
+                <button type="button" class="btn btn-danger remove-question">×</button>
+
             </div>
+
 
         </div>
         <button type="button" id="add-question" class="btn btn-sm btn-secondary mb-3">
@@ -49,9 +67,22 @@ document.addEventListener("DOMContentLoaded", function () {
         const div = document.createElement("div");
         div.className = "input-group mb-2 question-item";
         div.innerHTML = `
-            <input type="text" name="questions[]" class="form-control" placeholder="Question text" required>
+            <input type="text" name="questions[]" class="form-control" placeholder="Enter question" required>
+            <select name="categories[]" class="form-select" style="max-width:150px;">
+                    <option value="visual">Visual</option>
+                    <option value="auditory">Auditory</option>
+                    <option value="reading">Reading/Writing</option>
+                    <option value="kinesthetic">Kinesthetic</option>
+                </select>
+
+
+            <input type="file" name="question_media[]" class="form-control" style="max-width:230px"
+                accept="image/*,audio/*">
+
             <button type="button" class="btn btn-danger remove-question">&times;</button>
         `;
+
+
         container.appendChild(div);
         attachRemove(div.querySelector(".remove-question"));
     });
@@ -60,3 +91,4 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 {% endblock %}
+

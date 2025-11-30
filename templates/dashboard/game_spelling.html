@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid game-page-bg py-4">
+    
+    <div class="game-wrapper mx-auto">
+        <div class="game-card shadow-lg rounded-4 p-4">
+            <div class="game-header-top d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="game-title-icon">🎮</span>
+                    <div>
+                        <h4 class="mb-0">{{ game.title }}</h4>
+                        <small class="text-muted">{{ game.description or '' }}</small>
+                    </div>
+                </div>
+                <div class="text-end small text-muted">
+                    Question <span id="question-counter">1</span> /
+                    <span id="question-max">5</span><br>
+                    Score: <span id="score">0</span> / <span id="total">0</span>
+                </div>
+            </div>
+
+            <style>
+                .game-page-bg {
+                    background: linear-gradient(180deg, #f2fff8 0%, #f0f7ff 100%);
+                    min-height: calc(100vh - 80px);
+                }
+                .game-wrapper {
+                    max-width: 900px;
+                }
+                .game-card {
+                    background: #ffffff;
+                    border-radius: 1.5rem;
+                    border: 1px solid rgba(0,0,0,0.03);
+                }
+                .game-title-icon {
+                    font-size: 2.2rem;
+                }
+                .badge-pill {
+                    border-radius: 999px;
+                }
+                .game-meta-badges {
+                    display: flex;
+                    gap: 0.5rem;
+                    flex-wrap: wrap;
+                    margin-top: 0.6rem;
+                }
+                .spell-zone {
+                    background: #f6fff9;
+                    border-radius: 1.25rem;
+                    border: 1px dashed #bfead2;
+                    padding: 1.8rem 1rem 1.4rem;
+                    margin-bottom: 1.25rem;
+                    text-align: center;
+                }
+                .spell-emoji {
+                    font-size: 4rem;
+                    display: inline-block;
+                    animation: spellPop 0.35s ease-out;
+                }
+                @keyframes spellPop {
+                    0%   { transform: scale(0.4); opacity: 0; }
+                    60%  { transform: scale(1.15); opacity: 1; }
+                    100% { transform: scale(1); }
+                }
+                .spell-word-pattern {
+                    font-size: 1.8rem;
+                    letter-spacing: 0.15em;
+                    font-weight: 600;
+                }
+                .spell-hint {
+                    color: #888;
+                    font-size: 0.9rem;
+                }
+                .spell-answer-btn {
+                    min-width: 60px;
+                    border-radius: 999px !important;
+                    font-size: 1.2rem;
+                    padding: 0.45rem 1rem;
+                    margin-bottom: 0.5rem;
+                    transition: transform 0.1s ease, box-shadow 0.1s ease;
+                }
+                .spell-answer-btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+                }
+                .status-text {
+                    min-height: 1.4rem;
+                    font-weight: 600;
+                }
+                .progress {
+                    background-color: #ddf8e9;
+                    border-radius: 999px;
+                }
+                .progress-bar {
+                    background: linear-gradient(90deg, #00c897, #6a5af9);
+                    border-radius: 999px;
+                }
+                .finish-btn {
+                    border-radius: 999px;
+                    padding-inline: 1.4rem;
+                }
+            </style>
+
+            <div class="game-meta-badges">
+                <span class="badge bg-info text-dark badge-pill">Spelling Game</span>
+                <span class="badge bg-success badge-pill">Beginner</span>
+                <span class="badge bg-warning text-dark badge-pill">✏️ Fill the missing letter</span>
+            </div>
+
+            <hr class="mt-3 mb-3">
+
+            <p class="fw-semibold mb-2">
+                <span class="text-primary">Instructions:</span>
+                Look at the animal. Tap the letter that completes the word.
+            </p>
+
+            <div id="spell-game-area">
+                <div class="spell-zone">
+                    <div id="spell-emoji" class="mb-2"></div>
+                    <div id="spell-pattern" class="spell-word-pattern mb-2"></div>
+                    <div class="spell-hint">
+                        Say the word slowly: c-a-t, d-o-g, etc.
+                    </div>
+                </div>
+
+                <div id="spell-answers" class="mb-3 d-flex flex-wrap justify-content-center gap-2"></div>
+
+                <div id="spell-feedback" class="status-text text-center mb-2"></div>
+
+                <div class="progress mb-3" style="height: 10px;">
+                    <div id="spell-progress-bar" class="progress-bar" role="progressbar"
+                         style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <div class="d-flex flex-column align-items-center">
+                    <button id="spell-finish-btn" class="btn btn-primary mt-1 finish-btn" disabled>
+                        Finish &amp; Save Result
+                    </button>
+                    <div id="spell-save-status" class="mt-3"></div>
+                </div>
+            </div>
+
+            <audio id="sound-correct"
+                   src="{{ url_for('static', filename='sounds/correct.mp3') }}"></audio>
+            <audio id="sound-wrong"
+                   src="{{ url_for('static', filename='sounds/wrong.mp3') }}"></audio>
+
+            <script>
+                const childId3 = {{ selected_child.id }};
+                const gameId3 = {{ game.id }};
+                const saveResultUrl3 = "{{ url_for('save_game_result') }}";
+
+                const scoreSpan3 = document.getElementById("score");
+                const totalSpan3 = document.getElementById("total");
+                const questionCounter3 = document.getElementById("question-counter");
+                const questionMax3 = document.getElementById("question-max");
+                const emojiDiv3 = document.getElementById("spell-emoji");
+                const patternDiv3 = document.getElementById("spell-pattern");
+                const answersDiv3 = document.getElementById("spell-answers");
+                const feedbackDiv3 = document.getElementById("spell-feedback");
+                const finishBtn3 = document.getElementById("spell-finish-btn");
+                const saveStatusDiv3 = document.getElementById("spell-save-status");
+                const progressBar3 = document.getElementById("spell-progress-bar");
+                const soundCorrect3 = document.getElementById("sound-correct");
+                const soundWrong3 = document.getElementById("sound-wrong");
+
+                let spellScore = 0;
+                let spellTotalQuestions = 0;
+                let spellCurrentCorrect = null;
+                let spellStartTime = Date.now();
+                const spellMaxQuestions = 5;
+
+                questionMax3.innerText = spellMaxQuestions.toString();
+
+                const spellItems = [
+                    { emoji: "🐱", word: "cat",    pattern: "c_t",    correct: "a", choices: ["a","o","e"] },
+                    { emoji: "🐶", word: "dog",    pattern: "d_g",    correct: "o", choices: ["a","o","u"] },
+                    { emoji: "🐰", word: "rabbit", pattern: "rabb_t", correct: "i", choices: ["e","i","o"] },
+                    { emoji: "🐻", word: "bear",   pattern: "b_ar",   correct: "e", choices: ["e","i","a"] },
+                    { emoji: "🐼", word: "panda",  pattern: "p_nd_a", correct: "a", choices: ["a","e","i"] },
+                    { emoji: "🐸", word: "frog",   pattern: "fr_g",   correct: "o", choices: ["a","o","e"] },
+                    { emoji: "🐴", word: "horse",  pattern: "h_rse",  correct: "o", choices: ["o","a","e"] },
+                    { emoji: "🐷", word: "pig",    pattern: "p_g",    correct: "i", choices: ["i","e","a"] },
+                    { emoji: "🐵", word: "monkey", pattern: "m_nkey", correct: "o", choices: ["o","a","e"] }
+                ];
+
+                let spellOrder = [];
+                for (let i = 0; i < spellItems.length; i++) {
+                    spellOrder.push(i);
+                }
+                spellOrder.sort(() => Math.random() - 0.5);
+
+                function playSound3(audioElement) {
+                    if (audioElement && audioElement.play) {
+                        audioElement.currentTime = 0;
+                        audioElement.play().catch(() => {});
+                    }
+                }
+
+                function updateSpellProgress() {
+                    const percentage = Math.round((spellTotalQuestions / spellMaxQuestions) * 100);
+                    progressBar3.style.width = percentage + "%";
+                    progressBar3.setAttribute("aria-valuenow", percentage);
+                }
+
+                function generateSpellQuestion() {
+                    if (spellTotalQuestions >= spellMaxQuestions) {
+                        finishBtn3.disabled = false;
+                        feedbackDiv3.innerHTML =
+                            "<span class='text-success'>Great spelling practice! ✏️</span>";
+                        emojiDiv3.innerHTML = "";
+                        answersDiv3.innerHTML = "";
+                        questionCounter3.innerText = spellMaxQuestions.toString();
+                        updateSpellProgress();
+                        return;
+                    }
+
+                    const index = spellOrder[spellTotalQuestions % spellOrder.length];
+                    const item = spellItems[index];
+
+                    spellCurrentCorrect = item.correct;
+                    spellTotalQuestions++;
+
+                    totalSpan3.innerText = String(spellTotalQuestions);
+                    questionCounter3.innerText = String(spellTotalQuestions);
+                    feedbackDiv3.innerText = "";
+
+                    emojiDiv3.innerHTML = "<span class='spell-emoji'>" + item.emoji + "</span>";
+                    patternDiv3.innerText = item.pattern.toUpperCase();
+                    updateSpellProgress();
+
+                    const options = [...item.choices];
+                    options.sort(() => Math.random() - 0.5);
+
+                    answersDiv3.innerHTML = "";
+                    options.forEach(function (opt) {
+                        const btn = document.createElement("button");
+                        btn.className = "btn btn-outline-success spell-answer-btn";
+                        btn.innerText = opt;
+                        btn.onclick = function () { checkSpellAnswer(opt, item); };
+                        answersDiv3.appendChild(btn);
+                    });
+                }
+
+                function checkSpellAnswer(selected, item) {
+                    if (spellTotalQuestions > spellMaxQuestions) return;
+
+                    if (selected === spellCurrentCorrect) {
+                        spellScore++;
+                        scoreSpan3.innerText = String(spellScore);
+                        feedbackDiv3.innerHTML =
+                            "<span class='text-success'>Correct! \"" +
+                            item.word + "\" ✨</span>";
+                        playSound3(soundCorrect3);
+                    } else {
+                        feedbackDiv3.innerHTML =
+                            "<span class='text-danger'>Not quite. The word is \"" +
+                            item.word + "\".</span>";
+                        playSound3(soundWrong3);
+                    }
+
+                    setTimeout(generateSpellQuestion, 1100);
+                }
+
+                finishBtn3.addEventListener("click", function () {
+                    const timeSpent = Math.floor((Date.now() - spellStartTime) / 1000);
+
+                    const payload = {
+                        child_id: childId3,
+                        game_id: gameId3,
+                        score: spellScore,
+                        total_questions: spellTotalQuestions,
+                        time_spent_seconds: timeSpent
+                    };
+
+                    fetch(saveResultUrl3, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        let msg;
+                        if (data.success) {
+                            msg = "<span class='text-success'>Result saved successfully! ✏️📚</span>";
+                        } else {
+                            msg = "<span class='text-danger'>Failed to save result.</span>";
+                        }
+                        saveStatusDiv3.innerHTML = msg;
+                    })
+                    .catch(err => {
+                        saveStatusDiv3.innerHTML =
+                            "<span class='text-danger'>Error saving result.</span>";
+                    });
+
+                    this.disabled = true;
+                });
+
+                window.addEventListener("load", generateSpellQuestion);
+            </script>
+
+            <div class="mt-3 d-flex justify-content-end">
+                <a href="{{ url_for('dashboard_games') }}" class="btn btn-outline-secondary">
+                    Back to Games
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

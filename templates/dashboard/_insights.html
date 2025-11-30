@@ -1,4 +1,4 @@
-<div class="container-fluid mt-3">
+< class="container-fluid mt-3">
     <h3 class="mb-3">
         AI Insights for {{ selected_child.name }}
     </h3>
@@ -6,110 +6,127 @@
     <!-- AI SUMMARY CARD -->
     <div class="card mb-3">
         <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-  <span>AI Summary</span>
-  <div class="d-flex align-items-center gap-2">
-    {% if last_generated %}
-      <small class="text-white-50">
-        Last generated: {{ last_generated.strftime('%Y-%m-%d %H:%M') }}
-      </small>
+            <span>AI Summary</span>
+            <div class="d-flex align-items-center gap-2">
+                {% if last_generated %}
+                  <small class="text-white-50">
+                    Last generated: {{ last_generated.strftime('%Y-%m-%d %H:%M') }}
+                  </small>
                 {% endif %}
-        <a href="{{ url_for('ai_insights', regen=1) }}" class="btn btn-sm btn-light">
-      Regenerate
-        </a>
-        </div>
+
+                <a href="{{ url_for('ai_insights', regen=1) }}" class="btn btn-sm btn-light">
+                    Regenerate
+                </a>
+            </div>
         </div>
 
         <div class="card-body">
             {% if ai_summary %}
-                <p class="mb-0">{{ ai_summary }}</p>
+            <div id="aiInsightResult">
+                    {{ ai_summary|safe }}
+                </div>
             {% else %}
                 <p class="text-muted mb-0">
-                    No AI summary available yet. Please ensure this child has some academic scores,
-                    and that the AI service is working.
+                     No AI insight generated yet. Click <strong>Regenerate</strong> once there are
+                    some academic scores or mini-game records for this child.
                 </p>
             {% endif %}
         </div>
     </div>
 
-    <!-- EXISTING Strengths / Weaknesses layout -->
-    <div class="row">
-        <!-- Strengths -->
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-success text-white">
-                    <strong>Strengths</strong>
-                </div>
-                <div class="card-body">
-                    {% if strengths %}
-                        <ul class="mb-0">
-                            {% for s in strengths %}
-                                <li>{{ s }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="text-muted mb-0">
-                            No strong subjects identified yet. Please add some academic scores first.
-                        </p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+    <!-- Detailed data accordion -->
+    <div class="accordion mt-3" id="insightDataAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingData">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseData"
+                        aria-expanded="false" aria-controls="collapseData">
+                    Show detailed data used for this insight
+                </button>
+            </h2>
+            <div id="collapseData" class="accordion-collapse collapse"
+                 aria-labelledby="headingData" data-bs-parent="#insightDataAccordion">
+                <div class="accordion-body">
 
-        <!-- Weaknesses -->
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-warning">
-                    <strong>Areas to Improve</strong>
-                </div>
-                <div class="card-body">
-                    {% if weaknesses %}
-                        <ul class="mb-0">
-                            {% for w in weaknesses %}
-                                <li>{{ w }}</li>
-                            {% endfor %}
-                        </ul>
+                    <!-- Academic data table -->
+                    <h6>Academic data</h6>
+                    {% if scores %}
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm table-bordered align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Score</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in scores %}
+                                        <tr>
+                                            <td>{{ row.subject }}</td>
+                                            <td>{{ row.score }}</td>
+                                            <td>{{ row.date }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     {% else %}
-                        <p class="text-muted mb-0">
-                            No weak subjects detected yet. Great job! 🎉
+
+                    <p class="text-muted">
+                            No academic records found yet for this child.
                         </p>
                     {% endif %}
+
+                    <!-- Mini-game data table -->
+                    <h6 class="mt-3">Mini-game performance</h6>
+                    {% if game_results %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Game</th>
+                                        <th>Score</th>
+                                        <th>Total Questions</th>
+                                        <th>Time Spent (sec)</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in game_results %}
+                                        <tr>
+                                            <td>{{ row.game_title }}</td>
+                                            <td>{{ row.score }}</td>
+                                            <td>{{ row.total_questions }}</td>
+                                            <td>{{ row.time_spent_seconds }}</td>
+                                            <td>
+                                                {% if row.played_at %}
+                                                    {{ row.played_at.strftime('%Y-%m-%d') }}
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                     <p class="text-muted">
+                            No mini-game data found yet for this child.
+                        </p>
+                    {% endif %}
+
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Optional: show raw scores table -->
-    <div class="card mt-3">
-        <div class="card-header">
-            <strong>Academic Records Used for This Insight</strong>
-        </div>
-        <div class="card-body">
-            {% if scores %}
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>Score</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in scores %}
-                                <tr>
-                                    <td>{{ row.subject }}</td>
-                                    <td>{{ row.score }}</td>
-                                    <td>{{ row.date }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <p class="text-muted mb-0">
-                    No academic records found yet for this child.
-                </p>
-            {% endif %}
-        </div>
-    </div>
-</div>
+
+
+
+
+
+
+
+
+
+  

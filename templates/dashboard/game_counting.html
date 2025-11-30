@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid game-page-bg py-4">
+
+    <div class="game-wrapper mx-auto">
+        <div class="game-card shadow-lg rounded-4 p-4">
+            <div class="game-header-top d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="game-title-icon">🎮</span>
+                    <div>
+                        <h4 class="mb-0">{{ game.title }}</h4>
+                        <small class="text-muted">{{ game.description or '' }}</small>
+                    </div>
+                </div>
+                <div class="text-end small text-muted">
+                    Question <span id="question-counter">1</span> /
+                    <span id="question-max">5</span><br>
+                    Score: <span id="score">0</span> / <span id="total">0</span>
+                </div>
+            </div>
+
+            <style>
+                .game-page-bg {
+                    background: linear-gradient(180deg, #fdf3ff 0%, #f0f7ff 100%);
+                    min-height: calc(100vh - 80px);
+                }
+                .game-wrapper {
+                    max-width: 900px;
+                }
+                .game-card {
+                    background: #ffffff;
+                    border-radius: 1.5rem;
+                    border: 1px solid rgba(0,0,0,0.03);
+                }
+                .game-title-icon {
+                    font-size: 2.2rem;
+                }
+                .badge-pill {
+                    border-radius: 999px;
+                }
+                .game-meta-badges {
+                    display: flex;
+                    gap: 0.5rem;
+                    flex-wrap: wrap;
+                    margin-top: 0.6rem;
+                }
+                .animals-zone {
+                    background: #fdfcff;
+                    border-radius: 1.25rem;
+                    border: 1px dashed #e0ddff;
+                    padding: 1.5rem 1rem;
+                    margin-bottom: 1.25rem;
+                    text-align: center;
+                }
+                .animals-row {
+                    min-height: 120px;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 2.8rem;
+                    margin-top: 0.75rem;
+                }
+                .animal-icon {
+                    display: inline-block;
+                    animation: animalPop 0.35s ease-out;
+                }
+                @keyframes animalPop {
+                    0%   { transform: scale(0.4); opacity: 0; }
+                    60%  { transform: scale(1.15); opacity: 1; }
+                    100% { transform: scale(1); }
+                }
+                .answer-btn {
+                    min-width: 80px;
+                    border-radius: 999px !important;
+                    font-size: 1.05rem;
+                    padding: 0.5rem 1.1rem;
+                    margin-bottom: 0.4rem;
+                    transition: transform 0.1s ease, box-shadow 0.1s ease;
+                }
+                .answer-btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+                }
+                .answer-btn:active {
+                    transform: translateY(0);
+                    box-shadow: none;
+                }
+                .status-text {
+                    min-height: 1.4rem;
+                    font-weight: 600;
+                }
+                .progress {
+                    background-color: #e9ecff;
+                    border-radius: 999px;
+                }
+                .progress-bar {
+                    background: linear-gradient(90deg, #6a5af9, #ff8ac3);
+                    border-radius: 999px;
+                }
+                .finish-btn {
+                    border-radius: 999px;
+                    padding-inline: 1.4rem;
+                }
+                .hearts {
+                    color: #ff6b81;
+                    font-size: 1.1rem;
+                }
+            </style>
+
+            <div class="game-meta-badges">
+                <span class="badge bg-primary badge-pill">Counting Game</span>
+                <span class="badge bg-success badge-pill">Easy</span>
+                <span class="badge bg-warning text-dark badge-pill hearts">⭐ Fun practice</span>
+            </div>
+
+            <hr class="mt-3 mb-3">
+
+            <p class="fw-semibold mb-2">
+                <span class="text-primary">Instructions:</span>
+                Count the animals and tap the correct number below.
+            </p>
+
+            <div id="game-area">
+                <div class="animals-zone">
+                    <div id="question" class="mb-1 fw-semibold"></div>
+                    <div id="animals" class="animals-row"></div>
+                </div>
+
+                <div id="answers" class="mb-3 d-flex flex-wrap justify-content-center gap-2"></div>
+
+                <div id="feedback" class="status-text text-center mb-2"></div>
+
+                <div class="progress mb-3" style="height: 10px;">
+                    <div id="progress-bar" class="progress-bar" role="progressbar"
+                         style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <div class="d-flex flex-column align-items-center">
+                    <button id="finish-btn" class="btn btn-primary mt-1 finish-btn" disabled>
+                        Finish &amp; Save Result
+                    </button>
+                    <div id="save-status" class="mt-3"></div>
+                </div>
+            </div>
+
+            <audio id="sound-correct"
+                   src="{{ url_for('static', filename='sounds/correct.mp3') }}"></audio>
+            <audio id="sound-wrong"
+                   src="{{ url_for('static', filename='sounds/wrong.mp3') }}"></audio>
+
+            <script>
+                const childId = {{ selected_child.id }};
+                const gameId = {{ game.id }};
+                const saveResultUrl = "{{ url_for('save_game_result') }}";
+
+                let currentAnswer = 0;
+                let score = 0;
+                let totalQuestions = 0;
+                let startTime = Date.now();
+                const maxQuestions = 5;
+
+                const scoreSpan = document.getElementById("score");
+                const totalSpan = document.getElementById("total");
+                const questionCounter = document.getElementById("question-counter");
+                const questionMax = document.getElementById("question-max");
+                const questionDiv = document.getElementById("question");
+                const animalsDiv = document.getElementById("animals");
+                const answersDiv = document.getElementById("answers");
+                const feedbackDiv = document.getElementById("feedback");
+                const finishBtn = document.getElementById("finish-btn");
+                const saveStatusDiv = document.getElementById("save-status");
+                const progressBar = document.getElementById("progress-bar");
+                const soundCorrect = document.getElementById("sound-correct");
+                const soundWrong = document.getElementById("sound-wrong");
+
+                questionMax.innerText = maxQuestions.toString();
+
+                const animalChoices = ["🐱","🐶","🐰","🐻","🐼","🐸","🐵"];
+
+                function playSound(audioElement) {
+                    if (audioElement && audioElement.play) {
+                        audioElement.currentTime = 0;
+                        audioElement.play().catch(() => {});
+                    }
+                }
+
+                function randomInt(min, max) {
+                    return Math.floor(Math.random() * (max - min + 1)) + min;
+                }
+
+                function renderAnimals(count) {
+                    animalsDiv.innerHTML = "";
+                    const chosenAnimal = animalChoices[Math.floor(Math.random() * animalChoices.length)];
+                    for (let i = 0; i < count; i++) {
+                        const span = document.createElement("span");
+                        span.className = "animal-icon";
+                        span.textContent = chosenAnimal;
+                        animalsDiv.appendChild(span);
+                    }
+                }
+
+                function updateProgress() {
+                    const percentage = Math.round((totalQuestions / maxQuestions) * 100);
+                    progressBar.style.width = percentage + "%";
+                    progressBar.setAttribute("aria-valuenow", percentage);
+                }
+
+                function generateQuestion() {
+                    if (totalQuestions >= maxQuestions) {
+                        finishBtn.disabled = false;
+                        questionDiv.innerHTML =
+                            "<span class='text-success fw-semibold'>Great job!</span> " +
+                            "Tap <strong>'Finish &amp; Save Result'</strong> to record your score.";
+                        animalsDiv.innerHTML = "";
+                        answersDiv.innerHTML = "";
+                        feedbackDiv.innerHTML = "";
+                        questionCounter.innerText = maxQuestions.toString();
+                        updateProgress();
+                        return;
+                    }
+
+                    const count = randomInt(1, 10);
+                    currentAnswer = count;
+                    totalQuestions++;
+
+                    totalSpan.innerText = String(totalQuestions);
+                    questionCounter.innerText = String(totalQuestions);
+                    feedbackDiv.innerText = "";
+                    questionDiv.innerHTML = "How many animals can you see?";
+
+                    renderAnimals(count);
+                    updateProgress();
+
+                    let options = new Set();
+                    options.add(count);
+                    while (options.size < 3) {
+                        options.add(randomInt(1, 10));
+                    }
+                    const optionList = Array.from(options).sort(() => Math.random() - 0.5);
+
+                    answersDiv.innerHTML = "";
+                    optionList.forEach(function (opt) {
+                        const btn = document.createElement("button");
+                        btn.className = "btn btn-outline-primary answer-btn";
+                        btn.innerText = opt;
+                        btn.onclick = function () { checkAnswer(opt); };
+                        answersDiv.appendChild(btn);
+                    });
+                }
+
+                function checkAnswer(selected) {
+                    if (totalQuestions > maxQuestions) return;
+
+                    if (selected === currentAnswer) {
+                        score++;
+                        scoreSpan.innerText = String(score);
+                        feedbackDiv.innerHTML = "<span class='text-success'>Correct! 🎉</span>";
+                        playSound(soundCorrect);
+                    } else {
+                        feedbackDiv.innerHTML =
+                            "<span class='text-danger'>Oops, that was " + selected +
+                            ". Try the next one!</span>";
+                        playSound(soundWrong);
+                    }
+                    setTimeout(generateQuestion, 900);
+                }
+
+                finishBtn.addEventListener("click", function () {
+                    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+
+                    const payload = {
+                        child_id: childId,
+                        game_id: gameId,
+                        score: score,
+                        total_questions: totalQuestions,
+                        time_spent_seconds: timeSpent
+                    };
+
+                    fetch(saveResultUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        let msg;
+                        if (data.success) {
+                            msg = "<span class='text-success'>Result saved successfully! 🌟</span>";
+                        } else {
+                            msg = "<span class='text-danger'>Failed to save result.</span>";
+                        }
+                        saveStatusDiv.innerHTML = msg;
+                    })
+                    .catch(err => {
+                        saveStatusDiv.innerHTML =
+                            "<span class='text-danger'>Error saving result.</span>";
+                    });
+
+                    this.disabled = true;
+                });
+
+                window.addEventListener("load", generateQuestion);
+            </script>
+
+            <div class="mt-3 d-flex justify-content-end">
+                <a href="{{ url_for('dashboard_games') }}" class="btn btn-outline-secondary">
+                    Back to Games
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

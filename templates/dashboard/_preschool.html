@@ -61,7 +61,7 @@
                 </button>
               </form>
 
-              <h6 class="fw-bold">{{ record.date }}</h6>
+              <h6 class="fw-bold">{{ record.date_str }}</h6>
               <p><strong>Domain:</strong> {{ record.domain }}</p>
               <p><strong>Description:</strong> {{ record.description }}</p>
             </div>
@@ -136,11 +136,22 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Show loading message inside card
     loadingText.style.display = "block";
-    resultDiv.style.display = "none";
+    if (resultDiv) {
+      resultDiv.style.display = "none";
+    }
 
     try {
       const res = await fetch("/dashboard/preschool/regenerate", { method: "POST" });
+
+      if (!res.ok) {
+        console.error("HTTP error:", res.status, res.statusText);
+        const errorText = await res.text();
+        console.error("Response:", errorText);
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
+      console.log("Response data:", data);
 
       if (data.error === "token_limit") {
         Swal.fire({
@@ -159,20 +170,23 @@ document.addEventListener("DOMContentLoaded", function() {
         });
       } else if (data.success) {
         // Update the benchmark summary dynamically
-        resultDiv.innerHTML = data.benchmark_summary;
+        if (resultDiv) {
+          resultDiv.innerHTML = data.benchmark_summary;
 
-        // Update "last generated" timestamp
-        let lastGen = document.querySelector(".text-muted.small.mb-2");
-        if (lastGen) {
-          lastGen.textContent = `Last generated on ${data.last_generated}`;
-        } else {
-          const newP = document.createElement("p");
-          newP.className = "text-muted small mb-2";
-          newP.textContent = `Last generated on ${data.last_generated}`;
-          resultDiv.parentElement.insertBefore(newP, resultDiv);
+          // Update "last generated" timestamp
+          let lastGen = document.querySelector(".text-muted.small.mb-2");
+          if (lastGen) {
+            lastGen.textContent = `Last generated on ${data.last_generated}`;
+          } else {
+            const newP = document.createElement("p");
+            newP.className = "text-muted small mb-2";
+            newP.textContent = `Last generated on ${data.last_generated}`;
+            resultDiv.parentElement.insertBefore(newP, resultDiv);
+          }
         }
       }
     } catch (err) {
+      console.error("Fetch error:", err);
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -185,7 +199,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
       // Hide loading text and show results again
       loadingText.style.display = "none";
-      resultDiv.style.display = "block";
+      if (resultDiv) {
+        resultDiv.style.display = "block";
+      }
     }
   });
 });

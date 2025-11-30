@@ -2,6 +2,34 @@
 {% block content %}
 <div class="container mt-4">
 
+  <!-- Inactivity Warning Banner -->
+  {% if inactivity_warning %}
+  <div class="alert {% if inactivity_warning.is_critical %}alert-danger{% else %}alert-warning{% endif %} alert-dismissible fade show" role="alert">
+    <h4 class="alert-heading">
+      {% if inactivity_warning.is_critical %}
+        <i class="fas fa-exclamation-triangle"></i> URGENT: Account Deletion Warning!
+      {% else %}
+        <i class="fas fa-exclamation-circle"></i> Account Inactivity Warning
+      {% endif %}
+    </h4>
+    <p>
+      {% if inactivity_warning.days_until_deletion > 0 %}
+        Your account has been inactive for <strong>{{ inactivity_warning.days_inactive }} days</strong>.
+        Your account will be automatically deleted in <strong>{{ inactivity_warning.days_until_deletion }} days</strong> if you don't log in.
+      {% else %}
+        Your account has been inactive for <strong>{{ inactivity_warning.days_inactive }} days</strong> and is scheduled for deletion.
+        Please contact an administrator if you believe this is an error.
+      {% endif %}
+    </p>
+    <hr>
+    <p class="mb-0">
+      <strong>Good news!</strong> By logging in today, you have reactivated your account. Your account is now safe from automatic deletion.
+      To keep your account active in the future, please log in at least once every 30 days.
+    </p>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endif %}
+
   <!-- User Profile Card -->
   <div class="card mb-4 shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
@@ -9,15 +37,11 @@
       <div>
 
         <button class="btn btn-sm btn-light me-2" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
-
           <i class="fas fa-key"></i>
-
         </button>
 
         <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-
           <i class="fas fa-pencil-alt"></i>
-
         </button>
 
       </div>
@@ -40,9 +64,7 @@
             </button>
           </li>
 
-          
       </ul>
-
     </div>
 
     <div class="card-body tab-content">
@@ -80,7 +102,17 @@
                 <td>{{ child.gender }}</td>
                 <td>{{ child.dob }}</td>
                 <td>{{ child.notes or "-" }}</td>
-                
+                <td class="text-center">
+                  <button class="btn btn-sm btn-warning" 
+                          data-bs-toggle="modal" 
+                          data-bs-target="#editChildModal{{ child.id }}">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger delete-btn" 
+                          data-url="{{ url_for('delete_child', child_id=child.id) }}">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </td>
               </tr>
 
               <!-- Edit Child Modal -->
@@ -106,11 +138,22 @@
                         <div class="row">
                           <div class="col-md-4 mb-3">
                             <label class="form-label">Age</label>
-                            <input type="number" name="age" value="{{ child.age }}" class="form-control" required>
+                            <select name="age" class="form-select" required>
+                              <option value="">Select Age</option>
+                              <option value="3" {% if child.age|string == '3' %}selected{% endif %}>3</option>
+                              <option value="4" {% if child.age|string == '4' %}selected{% endif %}>4</option>
+                              <option value="5" {% if child.age|string == '5' %}selected{% endif %}>5</option>
+                              <option value="6" {% if child.age|string == '6' %}selected{% endif %}>6</option>
+                            </select>
                           </div>
                           <div class="col-md-4 mb-3">
-                            <label class="form-label">Grade Level</label>
-                            <input type="text" name="grade_level" value="{{ child.grade_level }}" class="form-control" required>
+                             <label class="form-label">Grade Level</label>
+                            <select name="grade_level" class="form-select" required>
+                              <option value="">Select Grade</option>
+                              <option value="NURSERY" {% if child.grade_level == 'NURSERY' %}selected{% endif %}>Nursery (Ages 3)</option>
+                              <option value="K1" {% if child.grade_level == 'K1' %}selected{% endif %}>K1 (Ages 4)</option>
+                              <option value="K2" {% if child.grade_level == 'K2' %}selected{% endif %}>K2 (Ages 5-6)</option>
+                            </select>   
                           </div>
                           <div class="col-md-4 mb-3">
                             <label class="form-label">Gender</label>
@@ -118,7 +161,6 @@
                               <option value="">Select</option>
                               <option value="male"   {% if child.gender == 'male' %}selected{% endif %}>Male</option>
                               <option value="female" {% if child.gender == 'female' %}selected{% endif %}>Female</option>
-                              <option value="other"  {% if child.gender == 'other' %}selected{% endif %}>Other</option>
                             </select>
                           </div>
                         </div>
@@ -129,6 +171,7 @@
                       </div>
                       <div class="modal-footer">
                         <button type="submit" class="btn btn-success">Save</button>
+                        <button type="button" class="btn btn-danger px-4" data-bs-dismiss="modal">Cancel</button>
                       </div>
                     </form>
                   </div>
@@ -165,6 +208,7 @@
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-success">Save</button>
+          <button type="button" class="btn btn-danger px-4" data-bs-dismiss="modal">Cancel</button>
         </div>
       </form>
     </div>
@@ -230,11 +274,23 @@
           <div class="row">
             <div class="col-md-4 mb-3">
               <label class="form-label">Age</label>
-              <input type="number" name="age" class="form-control" required>
+              <select name="age" class="form-select" required>
+                <option value="">Select Age</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label">Grade Level</label>
-              <input type="text" name="grade_level" class="form-control" required>
+               <select name="grade_level" class="form-select" required>
+                <option value="">Select Grade</option>
+                <option value="NURSERY">Nursery (Ages 3)</option>
+                <option value="K1">K1 (Ages 4)</option>
+                <option value="K2">K2 (Ages 5-6)</option>
+              </select>
+
             </div>
             <div class="col-md-4 mb-3">
               <label class="form-label">Gender</label>
@@ -242,7 +298,6 @@
                 <option value="">Select</option>
                 <option>Male</option>
                 <option>Female</option>
-                <option>Other</option>
               </select>
             </div>
           </div>
@@ -253,6 +308,7 @@
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-danger px-4" data-bs-dismiss="modal">Cancel</button>
         </div>
       </form>
     </div>
@@ -263,7 +319,44 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  // Auto-select grade level based on age
+    const ageToGrade = {
+      '3': 'NURSERY',
+      '4': 'K1',
+      '5': 'K2',
+      '6': 'K2' 
+    };
 
+     function applyGradeForAge(ageSelect) {
+    const selectedAge = ageSelect.value;
+    const form = ageSelect.closest('form');
+    if (!form) return;
+
+    const gradeSelect = form.querySelector('select[name="grade_level"]');
+    if (!gradeSelect) return;
+
+    if (selectedAge in ageToGrade) {
+      gradeSelect.value = ageToGrade[selectedAge];
+      gradeSelect.style.transition = 'background-color 0.3s';
+      gradeSelect.style.backgroundColor = '#e8f5e9';
+      setTimeout(() => {
+        gradeSelect.style.backgroundColor = '';
+      }, 500);
+    }
+  }
+
+  document.addEventListener('change', function(e) {
+
+    if (e.target && e.target.matches('select[name="age"]')) {
+      applyGradeForAge(e.target);
+    }
+  });
+
+   document.querySelectorAll('select[name="age"]').forEach(select => {
+    applyGradeForAge(select);
+  });
+
+       
   // Child search filter
   const search = document.getElementById("childSearch");
   if (search) {

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Deleted User Accounts{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2>Deleted User Accounts</h2>
+            <p class="text-muted">View and restore deleted accounts. Accounts are permanently deleted after 90 days.</p>
+            <a href="{{ url_for('admin_inactive_users') }}" class="btn btn-secondary mb-3">
+                ← Back to Inactive Users
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">📊 Summary</h5>
+                    <p class="mb-1"><strong>Total Deleted Accounts:</strong> {{ deleted_users|length }}</p>
+                    <p class="mb-0"><strong>Grace Period:</strong> 90 days before permanent deletion</p>
+                    <p class="mb-0 text-info"><strong>Info:</strong> Deleted accounts can be restored at any time within the 90-day grace period.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deleted Users Table -->
+    {% if deleted_users %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Deleted Accounts ({{ deleted_users|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Deleted On</th>
+                                    <th>Reason</th>
+                                    <th>Days Deleted</th>
+                                    <th>Days Until Permanent</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in deleted_users %}
+                                <tr {% if user.days_until_permanent <= 7 %}class="table-warning"{% endif %}>
+                                    <td>{{ user.id }}</td>
+                                    <td>{{ user.name }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if user.role == 'admin' %}danger{% else %}primary{% endif %}">
+                                            {{ user.role|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td>{{ user.deleted_at.strftime('%Y-%m-%d %H:%M') if user.deleted_at else 'N/A' }}</td>
+                                    <td>
+                                        <small class="text-muted">{{ user.deletion_reason or 'No reason specified' }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ user.days_deleted }} days</span>
+                                    </td>
+                                    <td>
+                                        {% if user.days_until_permanent <= 0 %}
+                                            <span class="badge bg-danger">Overdue for deletion</span>
+                                        {% elif user.days_until_permanent <= 7 %}
+                                            <span class="badge bg-warning text-dark">{{ user.days_until_permanent }} days ⚠️</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ user.days_until_permanent }} days</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.days_until_permanent <= 7 %}
+                                            <span class="badge bg-warning text-dark">⚠️ Expiring Soon</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Recoverable</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('admin_restore_user', user_id=user.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to restore {{ user.name }}? This will reactivate their account.');">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Restore Account">
+                                                <i class="bi bi-arrow-counterclockwise"></i> Restore
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <h5>No Deleted Accounts</h5>
+                <p class="mb-0">There are currently no deleted user accounts.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}

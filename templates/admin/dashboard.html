@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+
 {% block content %}
 <div class="container mt-4">
     <h2>Admin Dashboard</h2>
@@ -17,31 +18,60 @@
             </a>
         </div>
         <!-- END User Management -->
-         
+
+        <!-- Inactive User Management -->
+        <div class="col-md-4">
+            <a href="{{ url_for('admin_inactive_users') }}" class="text-decoration-none">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Inactive User Management</h5>
+                        <p class="card-text">Monitor and manage inactive user accounts.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <!-- END Inactive User Management -->
+
         <!-- Questionnaires -->
         <div class="col-md-4">
             <a href="{{ url_for('admin_tests') }}" class="text-decoration-none">
                 <div class="card mb-3 shadow-sm hover-shadow">
                     <div class="card-body">
-                        <h5 class="card-title">Test Management</h5>
-                        <p class="card-text">Create and manage learning style tests.</p>
+                        <h5 class="card-title">Learning Style Management</h5>
+                        <p class="card-text">Create and manage learning style questionnaire.</p>
                     </div>
                 </div>
             </a>
         </div>
 
 
-        
 
-        <!-- AI Config / Resources -->
+
+        <!-- Educational Resources -->
         <div class="col-md-4">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">AI Config / Resources</h5>
-                    <p class="card-text">Manage educational resources and AI prompts.</p>
+            <a href="{{ url_for('admin_resources') }}" class="text-decoration-none">
+                <div class="card mb-3 shadow-sm hover-shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">Educational Resources</h5>
+                        <p class="card-text">Add or edit videos, books, games, apps, and articles.</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
+
+
+        <!-- Mini Game Management -->
+        <div class="col-md-4">
+            <a href="{{ url_for('admin_games') }}" class="text-decoration-none">
+                <div class="card mb-3 shadow-sm hover-shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">Mini Game Management</h5>
+                        <p class="card-text">Add, edit, or remove mini educational games.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
 
         <!-- Children Overview -->
         <div class="col-md-4">
@@ -53,8 +83,5 @@
             </div>
         </div>
 
-        
-
     </div>
 </div>
-{% endblock %}

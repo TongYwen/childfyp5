@@ -8,23 +8,12 @@
       <div class="row">
         <div class="col-12">
             <label class="form-label mt-2 fw-bold">Subject</label>
-            <select name="subject" id="subjectSelect" class="form-select" required>
+            <select name="subject" class="form-select" required>
             <option value="">-- Select Subject --</option>
             {% for subject in subjects %}
                 <option value="{{ subject }}">{{ subject }}</option>
             {% endfor %}
-            {% if subjects|length > 0 %}
-                <option value="Other">Other</option>
-            {% else %}
-                <option value="Other">Add Subject</option>
-            {% endif %}
             </select>
-        </div>
-
-        <!-- Custom subject field -->
-        <div class="col-6" id="otherSubjectField" style="display:none;">
-            <label class="form-label mt-2 fw-bold">Custom Subject</label>
-            <input type="text" name="other_subject" class="form-control" placeholder="Enter subject">
         </div>
       </div>
 
@@ -32,7 +21,7 @@
        <div class="row">
             <div class="col-12">
                 <label class="form-label mt-2 fw-bold">Score</label>
-                <input type="number" name="score" class="form-control" required>
+                <input type="number" name="score" class="form-control" min="0" max="100" required>
             </div>
       </div>
 
@@ -40,7 +29,7 @@
        <div class="row">
         <div class="col-md-6">
             <label class="form-label mt-2 fw-bold">Year</label>
-            <input type="number" name="year" class="form-control" min="2000" max="2100" required>
+            <input type="number" name="year" id="yearInput" class="form-control" min="2000" max="2100" required readonly>
         </div>
         <div class="col-md-6">
             <label class="form-label mt-2 fw-bold">Month</label>
@@ -166,11 +155,11 @@
 </div>
 
 <script>
-document.getElementById("subjectSelect").addEventListener("change", function() {
-  if (this.value === "Other") {
-    document.getElementById("otherSubjectField").style.display = "block";
-  } else {
-    document.getElementById("otherSubjectField").style.display = "none";
+// Set current year automatically
+document.addEventListener('DOMContentLoaded', function() {
+  const yearInput = document.getElementById("yearInput");
+  if (yearInput) {
+    yearInput.value = new Date().getFullYear();
   }
 });
 
