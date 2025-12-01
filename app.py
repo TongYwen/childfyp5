@@ -2315,44 +2315,45 @@ def learning_style():
     regen = request.args.get("regen")
 
     if regen == "1" and (learning_notes or test_answers):
-                 # --- Build observations text with optional date ---
-        obs_lines = []
-        for note in learning_notes:
-            date_val = note.get("created_at")
-            if date_val:
-                date_str = date_val.strftime("%Y-%m-%d")
-                obs_lines.append(f"- {note['observation']} (on {date_str})")
-            else:
-                obs_lines.append(f"- {note['observation']}")
-        obs_text = "\n".join(obs_lines) if obs_lines else "No observations provided."
+       try:
+            # --- Build observations text with optional date ---
+            obs_lines = []
+            for note in learning_notes:
+                date_val = note.get("created_at")
+                if date_val:
+                    date_str = date_val.strftime("%Y-%m-%d")
+                    obs_lines.append(f"- {note['observation']} (on {date_str})")
+                else:
+                    obs_lines.append(f"- {note['observation']}")
+            obs_text = "\n".join(obs_lines) if obs_lines else "No observations provided."
 
-        # --- Group test answers by learning style category ---
-        style_groups = {
-            "visual": [],
-            "auditory": [],
-            "reading": [],
-            "kinesthetic": [],
-            "other": [],
-        }
+            # --- Group test answers by learning style category ---
+            style_groups = {
+                "visual": [],
+                "auditory": [],
+                "reading": [],
+                "kinesthetic": [],
+                "other": [],
+            }
 
-        for ans in test_answers:
-            raw_cat = (ans.get("question_category") or "").strip().lower()
+            for ans in test_answers:
+                raw_cat = (ans.get("question_category") or "").strip().lower()
 
-            if "visual" in raw_cat:
-                key = "visual"
-            elif "auditory" in raw_cat or "audio" in raw_cat:
-                key = "auditory"
-            elif (
-                "reading" in raw_cat
-                or "read" in raw_cat
-                or "writing" in raw_cat
-                or "write" in raw_cat
-            ):
-                key = "reading"
-            elif "kinesthetic" in raw_cat or "kinaesthetic" in raw_cat:
-                key = "kinesthetic"
-            else:
-                key = "other"
+                if "visual" in raw_cat:
+                    key = "visual"
+                elif "auditory" in raw_cat or "audio" in raw_cat:
+                    key = "auditory"
+                elif (
+                    "reading" in raw_cat
+                    or "read" in raw_cat
+                    or "writing" in raw_cat
+                    or "write" in raw_cat
+                ):
+                    key = "reading"
+                elif "kinesthetic" in raw_cat or "kinaesthetic" in raw_cat:
+                    key = "kinesthetic"
+                else:
+                    key = "other"
 
                 answer_val = ans.get("answer")
                 question_text = ans.get("question_text", "Unknown question")
@@ -2371,33 +2372,31 @@ def learning_style():
 
                 style_groups[key].append(display)
 
-                style_groups[key].append(display)
+                # --- Build grouped text for AI prompt ---
+            sections = []
+            label_map = {
+                "visual": "VISUAL (prefers pictures, images, diagrams)",
+                "auditory": "AUDITORY (prefers sound, listening, speaking)",
+                "reading": "READING/WRITING (prefers text, reading, writing)",
+                "kinesthetic": "KINESTHETIC (prefers hands-on, movement, doing)",
+                "other": "UNSPECIFIED / MIXED QUESTIONS",
+            }
 
-        # --- Build grouped text for AI prompt ---
-        sections = []
-        label_map = {
-            "visual": "VISUAL (prefers pictures, images, diagrams)",
-            "auditory": "AUDITORY (prefers sound, listening, speaking)",
-            "reading": "READING/WRITING (prefers text, reading, writing)",
-            "kinesthetic": "KINESTHETIC (prefers hands-on, movement, doing)",
-            "other": "UNSPECIFIED / MIXED QUESTIONS",
-        }
+            for key, label in label_map.items():
+                lines = style_groups[key]
+                if not lines:
+                    continue
+                section_text = f"{label} RESPONSES:\n" + "\n".join(lines)
+                sections.append(section_text)
 
-        for key, label in label_map.items():
-            lines = style_groups[key]
-            if not lines:
-                continue
-            section_text = f"{label} RESPONSES:\n" + "\n".join(lines)
-            sections.append(section_text)
+            ans_text = (
+                "\n\n".join(sections)
+                if sections
+                else "No questionnaire responses provided."
+            )
 
-        ans_text = (
-            "\n\n".join(sections)
-            if sections
-            else "No questionnaire responses provided."
-        )
-
-        # --- New AI prompt using grouped questionnaire data ---
-        prompt = f"""
+             # --- New AI prompt using grouped questionnaire data ---
+            prompt = f"""
                 You are an educational psychologist specializing in early childhood learning styles.
 
                 Use the parent questionnaires and observations below to summarise this preschool child's learning style.
@@ -2439,22 +2438,21 @@ def learning_style():
 
                 Do NOT mention that you are an AI model or refer to these instructions.
                 """
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(prompt)
-        benchmark_summary = (response.text or "").strip()
-
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            response = model.generate_content(prompt)
+            benchmark_summary = (response.text or "").strip()
             
             # 1) Remove any existing AI result for this child + module='learning'
-        cursor.execute(
+            cursor.execute(
                 """
                 DELETE FROM ai_results
                 WHERE child_id=%s AND module='learning'
                 """,
                 (child_id,),
             )
-
-            # 2) Insert the new result
-        cursor.execute(
+            
+             # 2) Insert the new result
+            cursor.execute(
                 """
                 INSERT INTO ai_results
                 (child_id, module, data, result, created_at, updated_at)
@@ -2462,12 +2460,12 @@ def learning_style():
                 """,
                 (child_id, data_payload, benchmark_summary),
             )
+
+            conn.commit()
+            last_generated = datetime.now()
             
-        conn.commit()
-        last_generated = datetime.now()
-        
-        except Exception as e:
-     if "token" in str(e).lower():
+            except Exception as e:
+            if "token" in str(e).lower():
                 cursor.close()
                 conn.close()
                 return jsonify({"error": "token_limit"})
@@ -2600,14 +2598,26 @@ def take_learning_test(child_id):
 
     test_id = request.form.get("test_id")
     if not test_id:
-        flash("Please select a test.", "danger")
+        flash("Please select a questionnaire.", "danger")
+        cursor.close()
+        conn.close()
         return redirect(url_for("learning_style"))
 
+    cursor.execute(
+        """
+        DELETE FROM test_answers
+        WHERE child_id = %s AND test_id = %s
+        """,
+        (child_id, test_id),
+    )
+
+    # Insert the new set of answers
     for key in request.form:
         if key.startswith("answers[") and key.endswith("[answer]"):
             idx = key.split("[")[1].split("]")[0]
             question_id = request.form.get(f"answers[{idx}][question_id]")
             answer_value = request.form.get(f"answers[{idx}][answer]")
+
             if question_id and answer_value is not None:
                 cursor.execute(
                     """
@@ -2622,7 +2632,7 @@ def take_learning_test(child_id):
     cursor.close()
     conn.close()
 
-    flash("Test answers submitted successfully.", "success")
+    flash("Questionnaire answers submitted successfully.", "success")
     return redirect(url_for("learning_style"))
 
 
@@ -2932,6 +2942,20 @@ def ai_insights():
     )
     scores = cursor.fetchall()
 
+    #fetch mini-game results for this child
+    cursor.execute(
+        """
+        SELECT gr.*, g.title AS game_title, g.game_key
+        FROM game_results gr
+        JOIN games g ON gr.game_id = g.id
+        WHERE gr.child_id=%s
+        ORDER BY gr.played_at ASC
+        """,
+        (child_id,),
+    )
+
+    game_results = cursor.fetchall()
+
     strengths = []
     weaknesses = []
     for row in scores:
@@ -2944,7 +2968,11 @@ def ai_insights():
         elif score <= 50:
             weaknesses.append(f"{subject} needs improvement (score {score}).")
 
-    payload_obj = {"scores": scores}
+    payload_obj = {
+        "scores": scores,
+        "games": game_results,
+    }
+
     data_payload = json.dumps(payload_obj, default=str, ensure_ascii=False)
 
     cursor.execute(
@@ -2962,34 +2990,97 @@ def ai_insights():
     if use_cached:
         ai_summary = cached["result"]
     else:
-        if scores:
+       # Only call AI if we have at least scores or game data
+        if scores or game_results:
             try:
+                # Academic scores text
                 score_lines = [
                     f"{row['subject']}: {row['score']}"
                     for row in scores
                     if row["score"] is not None
                 ]
-                scores_text = "\n".join(score_lines)
+                scores_text = (
+                    "\n".join(score_lines)
+                    if score_lines
+                    else "No academic scores recorded yet."
+                )
 
-                prompt = f"""
-You are an educational psychologist for preschool children.
+                # Mini-game performance text
+                game_lines = []
+                for row in game_results:
+                    title = row.get("game_title", "Unknown game")
+                    score = row.get("score")
+                    total_q = row.get("total_questions")
+                    time_spent = row.get("time_spent_seconds")
+                    played_at = row.get("played_at")
+                    date_str = (
+                        played_at.strftime("%Y-%m-%d") if played_at else "unknown date"
+                    )
+                    game_lines.append(
+                        f"{title}: score {score}/{total_q}, time {time_spent}s, played on {date_str}"
+                    )
 
-Child name: {child['name']}
-Age: {child.get('age', 'unknown')}
+                    games_text = (
+                    "\n".join(game_lines)
+                    if game_lines
+                    else "No mini-game results recorded yet."
+                )
+                    child_name = child["name"]
 
-Here are this child's recent subjects and scores:
-{scores_text}
+                    prompt = f"""
+                You are an educational psychologist for preschool children.
 
-Based on these scores, write a short, parent-friendly summary in 3–5 sentences.
-Explain:
-- Key strengths
-- Areas that may need more support
-- 1–2 gentle, practical suggestions for what parents can do at home.
+                CHILD:
+                - Name: {child_name}
+                - Age: {child.get('age', 'unknown')}
 
-Use warm, encouraging language.
-Do NOT mention exact score numbers or percentages; just describe performance levels
-(e.g., "very strong in math", "needs a little extra help in reading").
-"""
+                ACADEMIC SCORES (may be missing):
+                {scores_text}
+
+                MINI EDUCATIONAL GAME PERFORMANCE (counting, vocabulary, spelling):
+                {games_text}
+
+                INTERPRETATION NOTES:
+                - Counting games reflect early maths and number sense, logic, and basic problem-solving.
+                - Vocabulary games reflect word–picture matching and receptive language.
+                - Spelling games reflect phonics, letter–sound mapping, and early writing skills.
+
+                TASK:
+                Using ONLY the information above, create a short, parent-friendly insight.
+
+                OUTPUT FORMAT:
+                Return VALID HTML only, using exactly this structure:
+
+                <h5>Quick Snapshot</h5>
+                <ul>
+                <li><strong>Main strengths:</strong> 1–2 short phrases combining academic AND game performance
+                    (e.g., "very confident with numbers and quick to learn new game rules").</li>
+                <li><strong>Key areas to support:</strong> 1–2 short phrases
+                    (e.g., "spelling and confident English speaking still developing").</li>
+                <li><strong>Overall progress:</strong> 1 short sentence about improvement, stability, or mixed pattern.</li>
+                </ul>
+
+                <h5>Detailed Insight</h5>
+                <p>Write a warm paragraph of 4–6 sentences directly to {child_name}'s parents.
+                Explain:
+                - what the scores and game patterns suggest about how {child_name} thinks and learns,
+                - why certain areas look strong,
+                - why some areas need gentle support.
+                Use simple, non-technical language and keep the tone encouraging.</p>
+
+                <h6>Suggested Activities at Home</h6>
+                <ul>
+                <li>Tip 1 based on the main strengths and how to build on them.</li>
+                <li>Tip 2 focused on one weaker area (e.g., language or spelling) with a very practical daily activity.</li>
+                <li>Tip 3 that involves play or mini-games to keep learning fun.</li>
+                </ul>
+
+                IMPORTANT RULES:
+                - Total length (all sections) must stay under 180 words.
+                - Do NOT mention exact score numbers or percentages.
+                - Do NOT mention 'database', 'tables', or that you are an AI.
+                - If academic scores are missing, focus on game performance and do not apologise for missing data.
+                """
 
                 model = genai.GenerativeModel("gemini-2.5-flash")
                 response = model.generate_content(prompt)
@@ -3029,6 +3120,7 @@ Do NOT mention exact score numbers or percentages; just describe performance lev
         content_template="dashboard/_insights.html",
         selected_child=child,
         scores=scores,
+        game_results=game_results,
         strengths=strengths,
         weaknesses=weaknesses,
         ai_summary=ai_summary,
