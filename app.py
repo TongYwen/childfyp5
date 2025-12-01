@@ -2315,7 +2315,7 @@ def learning_style():
     regen = request.args.get("regen")
 
     if regen == "1" and (learning_notes or test_answers):
-       try:
+        try:
             # --- Build observations text with optional date ---
             obs_lines = []
             for note in learning_notes:
@@ -2353,7 +2353,7 @@ def learning_style():
                 elif "kinesthetic" in raw_cat or "kinaesthetic" in raw_cat:
                     key = "kinesthetic"
                 else:
-                    key = "other"
+                    key = "other" 
 
                 answer_val = ans.get("answer")
                 question_text = ans.get("question_text", "Unknown question")
@@ -2372,7 +2372,7 @@ def learning_style():
 
                 style_groups[key].append(display)
 
-                # --- Build grouped text for AI prompt ---
+            # --- Build grouped text for AI prompt ---
             sections = []
             label_map = {
                 "visual": "VISUAL (prefers pictures, images, diagrams)",
@@ -2463,8 +2463,8 @@ def learning_style():
 
             conn.commit()
             last_generated = datetime.now()
-            
-            except Exception as e:
+
+        except Exception as e:
             if "token" in str(e).lower():
                 cursor.close()
                 conn.close()

@@ -77,9 +77,18 @@
         <span class="nav-text">Educational Resources Hub</span>
       </a>
     </li>
+
+
+    <!-- Mini Educational Games -->
+    <li class="nav-item">
+      <a class="nav-link {% if active == 'games' %}active-link{% endif %}"
+         href="{{ url_for('dashboard_games') }}">
+        <i class="fas fa-gamepad me-2"></i>
+        <span class="nav-text">Mini Educational Games</span>
+      </a>
+    </li>
   </ul>
 </div>
-
 
     <!-- Main Content -->
     <div class="col-md-9 col-lg-10 p-4">
