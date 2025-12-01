@@ -2315,44 +2315,44 @@ def learning_style():
     regen = request.args.get("regen")
 
     if regen == "1" and (learning_notes or test_answers):
-             # --- Build observations text with optional date ---
-            obs_lines = []
-            for note in learning_notes:
-                date_val = note.get("created_at")
-                if date_val:
-                    date_str = date_val.strftime("%Y-%m-%d")
-                    obs_lines.append(f"- {note['observation']} (on {date_str})")
-                else:
-                    obs_lines.append(f"- {note['observation']}")
-            obs_text = "\n".join(obs_lines) if obs_lines else "No observations provided."
+                 # --- Build observations text with optional date ---
+        obs_lines = []
+        for note in learning_notes:
+            date_val = note.get("created_at")
+            if date_val:
+                date_str = date_val.strftime("%Y-%m-%d")
+                obs_lines.append(f"- {note['observation']} (on {date_str})")
+            else:
+                obs_lines.append(f"- {note['observation']}")
+        obs_text = "\n".join(obs_lines) if obs_lines else "No observations provided."
 
-            # --- Group test answers by learning style category ---
-            style_groups = {
-                "visual": [],
-                "auditory": [],
-                "reading": [],
-                "kinesthetic": [],
-                "other": [],
-            }
-            
-            for ans in test_answers:
-                raw_cat = (ans.get("question_category") or "").strip().lower()
+        # --- Group test answers by learning style category ---
+        style_groups = {
+            "visual": [],
+            "auditory": [],
+            "reading": [],
+            "kinesthetic": [],
+            "other": [],
+        }
 
-                if "visual" in raw_cat:
-                    key = "visual"
-                elif "auditory" in raw_cat or "audio" in raw_cat:
-                    key = "auditory"
-                elif (
-                    "reading" in raw_cat
-                    or "read" in raw_cat
-                    or "writing" in raw_cat
-                    or "write" in raw_cat
-                ):
-                    key = "reading"
-                elif "kinesthetic" in raw_cat or "kinaesthetic" in raw_cat:
-                    key = "kinesthetic"
-                else:
-                    key = "other"
+        for ans in test_answers:
+            raw_cat = (ans.get("question_category") or "").strip().lower()
+
+            if "visual" in raw_cat:
+                key = "visual"
+            elif "auditory" in raw_cat or "audio" in raw_cat:
+                key = "auditory"
+            elif (
+                "reading" in raw_cat
+                or "read" in raw_cat
+                or "writing" in raw_cat
+                or "write" in raw_cat
+            ):
+                key = "reading"
+            elif "kinesthetic" in raw_cat or "kinaesthetic" in raw_cat:
+                key = "kinesthetic"
+            else:
+                key = "other"
 
                 answer_val = ans.get("answer")
                 question_text = ans.get("question_text", "Unknown question")
@@ -2371,80 +2371,81 @@ def learning_style():
 
                 style_groups[key].append(display)
 
-                # --- Build grouped text for AI prompt ---
-            sections = []
-            label_map = {
-                "visual": "VISUAL (prefers pictures, images, diagrams)",
-                "auditory": "AUDITORY (prefers sound, listening, speaking)",
-                "reading": "READING/WRITING (prefers text, reading, writing)",
-                "kinesthetic": "KINESTHETIC (prefers hands-on, movement, doing)",
-                "other": "UNSPECIFIED / MIXED QUESTIONS",
-            }
+                style_groups[key].append(display)
 
-            for key, label in label_map.items():
-                lines = style_groups[key]
-                if not lines:
-                    continue
-                section_text = f"{label} RESPONSES:\n" + "\n".join(lines)
-                sections.append(section_text)
+        # --- Build grouped text for AI prompt ---
+        sections = []
+        label_map = {
+            "visual": "VISUAL (prefers pictures, images, diagrams)",
+            "auditory": "AUDITORY (prefers sound, listening, speaking)",
+            "reading": "READING/WRITING (prefers text, reading, writing)",
+            "kinesthetic": "KINESTHETIC (prefers hands-on, movement, doing)",
+            "other": "UNSPECIFIED / MIXED QUESTIONS",
+        }
 
-            ans_text = (
-                "\n\n".join(sections)
-                if sections
-                else "No questionnaire responses provided."
-            )
+        for key, label in label_map.items():
+            lines = style_groups[key]
+            if not lines:
+                continue
+            section_text = f"{label} RESPONSES:\n" + "\n".join(lines)
+            sections.append(section_text)
 
-            # --- New AI prompt using grouped questionnaire data ---
-            prompt = f"""
-                    You are an educational psychologist specializing in early childhood learning styles.
+        ans_text = (
+            "\n\n".join(sections)
+            if sections
+            else "No questionnaire responses provided."
+        )
 
-                    Use the parent questionnaires and observations below to summarise this preschool child's learning style.
+        # --- New AI prompt using grouped questionnaire data ---
+        prompt = f"""
+                You are an educational psychologist specializing in early childhood learning styles.
 
-                    PARENT OBSERVATIONS:
-                    {obs_text}
+                Use the parent questionnaires and observations below to summarise this preschool child's learning style.
 
-                    PARENT QUESTIONNAIRE RESPONSES (GROUPED BY LEARNING STYLE CATEGORY):
-                    {ans_text}
+                PARENT OBSERVATIONS:
+                {obs_text}
 
-                    TASK:
-                    1. For each of the four VARK styles (Visual, Auditory, Reading/Writing, Kinesthetic),
-                    give a SHORT rating such as "Strong", "Moderate", or "Weak" plus at most one short reason.
-                    2. State the child's main learning style (or mixed style) in ONE simple sentence.
-                    3. Give 3 short, practical tips for parents (one sentence each) to support the child at home.
+                PARENT QUESTIONNAIRE RESPONSES (GROUPED BY LEARNING STYLE CATEGORY):
+                {ans_text}
 
-                    IMPORTANT RULES:
-                    - Keep the total length under 180 words.
-                    - Use simple, warm, non-technical language suitable for parents.
+                TASK:
+                1. For each of the four VARK styles (Visual, Auditory, Reading/Writing, Kinesthetic),
+                give a SHORT rating such as "Strong", "Moderate", or "Weak" plus at most one short reason.
+                2. State the child's main learning style (or mixed style) in ONE simple sentence.
+                3. Give 3 short, practical tips for parents (one sentence each) to support the child at home.
 
-                    HTML FORMAT:
-                    <h5>Learning Style Summary</h5>
-                    <ul>
-                    <li>Visual          : ...</li>
-                    <li>Auditory        : ...</li>
-                    <li>Reading/Writing : ...</li>
-                    <li>Kinesthetic     : ...</li>
-                    </ul>
+                IMPORTANT RULES:
+                - Keep the total length under 180 words.
+                - Use simple, warm, non-technical language suitable for parents.
 
-                    <h5>Main Learning Style</h5>
-                    <p>...</p>
+                HTML FORMAT:
+                <h5>Learning Style Summary</h5>
+                <ul>
+                <li>Visual          : ...</li>
+                <li>Auditory        : ...</li>
+                <li>Reading/Writing : ...</li>
+                <li>Kinesthetic     : ...</li>
+                </ul>
 
-                    <h6>Tips for Parents</h6>
-                    <ul>
-                    <li>Tip 1...</li>
-                    <li>Tip 2...</li>
-                    <li>Tip 3...</li>
-                    </ul>
+                <h5>Main Learning Style</h5>
+                <p>...</p>
 
-                    Do NOT mention that you are an AI model or refer to these instructions.
-                    """
+                <h6>Tips for Parents</h6>
+                <ul>
+                <li>Tip 1...</li>
+                <li>Tip 2...</li>
+                <li>Tip 3...</li>
+                </ul>
 
-            model = genai.GenerativeModel("gemini-2.5-flash")
-            response = model.generate_content(prompt)
-            benchmark_summary = (response.text or "").strip()
+                Do NOT mention that you are an AI model or refer to these instructions.
+                """
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        benchmark_summary = (response.text or "").strip()
 
             
             # 1) Remove any existing AI result for this child + module='learning'
-            cursor.execute(
+        cursor.execute(
                 """
                 DELETE FROM ai_results
                 WHERE child_id=%s AND module='learning'
@@ -2453,7 +2454,7 @@ def learning_style():
             )
 
             # 2) Insert the new result
-            cursor.execute(
+        cursor.execute(
                 """
                 INSERT INTO ai_results
                 (child_id, module, data, result, created_at, updated_at)
@@ -2462,11 +2463,11 @@ def learning_style():
                 (child_id, data_payload, benchmark_summary),
             )
             
-            conn.commit()
-            last_generated = datetime.now()
-            
+        conn.commit()
+        last_generated = datetime.now()
+        
         except Exception as e:
-            if "token" in str(e).lower():
+     if "token" in str(e).lower():
                 cursor.close()
                 conn.close()
                 return jsonify({"error": "token_limit"})
