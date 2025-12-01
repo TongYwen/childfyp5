@@ -1754,6 +1754,7 @@ def academic_progress():
     scores = cursor.fetchall()
     for row in scores:
         row["date_str"] = row["date"].strftime("%Y-%m")
+        row["year"] = row["date"].year
 
     # Define default subjects for preschool
     default_subjects = [
@@ -1768,6 +1769,36 @@ def academic_progress():
     user_subjects = {row["subject"] for row in scores}
     subjects = default_subjects + [s for s in user_subjects if s not in default_subjects]
 
+    # Build yearly records and averages
+    years = sorted({row["year"] for row in scores}, reverse=True)
+    selected_year = request.args.get("year", type=int)
+
+    if years and (selected_year is None or selected_year not in years):
+        selected_year = years[0]
+
+    yearly_records = []
+    overall_avg = None
+    subject_year_avgs = {}
+
+    if selected_year:
+        yearly_records = sorted(
+            [row for row in scores if row["year"] == selected_year],
+            key=lambda r: r["date"],
+        )
+
+        if yearly_records:
+            overall_avg = round(
+                sum(r["score"] for r in yearly_records) / len(yearly_records),
+                1,
+            )
+            subject_scores = {}
+            for record in yearly_records:
+                subject_scores.setdefault(record["subject"], []).append(record["score"])
+
+            subject_year_avgs = {
+                sub: round(sum(vals) / len(vals), 1) for sub, vals in subject_scores.items()
+            }
+
     cursor.close()
     conn.close()
 
@@ -1777,6 +1808,11 @@ def academic_progress():
         selected_child={"id": child_id},
         scores=scores,
         subjects=subjects,
+        years=years,
+        selected_year=selected_year,
+        yearly_records=yearly_records,
+        overall_avg=overall_avg,
+        subject_year_avgs=subject_year_avgs,
         active="academic",
     )
 
