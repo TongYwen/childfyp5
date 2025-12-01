@@ -2275,8 +2275,7 @@ def learning_style():
     )
     learning_notes = cursor.fetchall()
 
-    cursor.execute(
-        """
+    cursor.execute("""
         SELECT
             ta.id AS answer_id,
             ta.test_id,
@@ -2284,15 +2283,14 @@ def learning_style():
             ta.answer,
             ta.created_at,
             t.name AS test_name,
-            tq.question AS question_text
+            tq.question AS question_text,
+            tq.category AS question_category
         FROM test_answers ta
         JOIN tests t ON ta.test_id = t.id
         JOIN test_questions tq ON ta.question_id = tq.id
         WHERE ta.child_id = %s
         ORDER BY ta.created_at DESC
-        """,
-        (child_id,),
-    )
+    """, (child_id,))
     test_answers = cursor.fetchall()
 
     combined_data = {"observations": learning_notes, "answers": test_answers}
@@ -2316,80 +2314,157 @@ def learning_style():
     last_generated = cached["updated_at"] if cached else None
     regen = request.args.get("regen")
 
-    if (regen == "1" or not use_cached) and (learning_notes or test_answers):
-        try:
-            obs_text = (
-                "\n".join(f"- {o['observation']}" for o in learning_notes)
-                if learning_notes
-                else "No observations."
+    if regen == "1" and (learning_notes or test_answers):
+             # --- Build observations text with optional date ---
+            obs_lines = []
+            for note in learning_notes:
+                date_val = note.get("created_at")
+                if date_val:
+                    date_str = date_val.strftime("%Y-%m-%d")
+                    obs_lines.append(f"- {note['observation']} (on {date_str})")
+                else:
+                    obs_lines.append(f"- {note['observation']}")
+            obs_text = "\n".join(obs_lines) if obs_lines else "No observations provided."
+
+            # --- Group test answers by learning style category ---
+            style_groups = {
+                "visual": [],
+                "auditory": [],
+                "reading": [],
+                "kinesthetic": [],
+                "other": [],
+            }
+            
+            for ans in test_answers:
+                raw_cat = (ans.get("question_category") or "").strip().lower()
+
+                if "visual" in raw_cat:
+                    key = "visual"
+                elif "auditory" in raw_cat or "audio" in raw_cat:
+                    key = "auditory"
+                elif (
+                    "reading" in raw_cat
+                    or "read" in raw_cat
+                    or "writing" in raw_cat
+                    or "write" in raw_cat
+                ):
+                    key = "reading"
+                elif "kinesthetic" in raw_cat or "kinaesthetic" in raw_cat:
+                    key = "kinesthetic"
+                else:
+                    key = "other"
+
+                answer_val = ans.get("answer")
+                question_text = ans.get("question_text", "Unknown question")
+                test_name = ans.get("test_name", "Unnamed questionnaire")
+
+                # If numeric, treat as scale; otherwise treat as Yes/No or text
+                if str(answer_val).isdigit():
+                    display = (
+                        f"- [{test_name}] Q: {question_text} | "
+                        f"A: {answer_val} (scale 1–5)"
+                    )
+                else:
+                    display = (
+                        f"- [{test_name}] Q: {question_text} | A: {answer_val}"
+                    )
+
+                style_groups[key].append(display)
+
+                # --- Build grouped text for AI prompt ---
+            sections = []
+            label_map = {
+                "visual": "VISUAL (prefers pictures, images, diagrams)",
+                "auditory": "AUDITORY (prefers sound, listening, speaking)",
+                "reading": "READING/WRITING (prefers text, reading, writing)",
+                "kinesthetic": "KINESTHETIC (prefers hands-on, movement, doing)",
+                "other": "UNSPECIFIED / MIXED QUESTIONS",
+            }
+
+            for key, label in label_map.items():
+                lines = style_groups[key]
+                if not lines:
+                    continue
+                section_text = f"{label} RESPONSES:\n" + "\n".join(lines)
+                sections.append(section_text)
+
+            ans_text = (
+                "\n\n".join(sections)
+                if sections
+                else "No questionnaire responses provided."
             )
 
-            test_grouped = {}
-            for ans in test_answers:
-                test_grouped.setdefault(ans["test_name"], []).append(ans)
-
-            ans_text = ""
-            for test_name, answers in test_grouped.items():
-                ans_text += f"\n{test_name}:\n"
-                for a in answers:
-                    answer_val = a.get("answer")
-                    question_text = a.get("question_text", "Unknown question")
-                    if str(answer_val).isdigit():
-                        ans_text += (
-                            f"  - Q: {question_text}\n"
-                            f"    A: {answer_val} (on scale 1–5)\n"
-                        )
-                    else:
-                        ans_text += (
-                            f"  - Q: {question_text}\n    A: {answer_val}\n"
-                        )
-
+            # --- New AI prompt using grouped questionnaire data ---
             prompt = f"""
-            You are an educational psychologist specializing in early childhood learning styles.
+                    You are an educational psychologist specializing in early childhood learning styles.
 
-            Below are real observations and test responses for a preschool child.
+                    Use the parent questionnaires and observations below to summarise this preschool child's learning style.
 
-            Observations:
-            {obs_text}
+                    PARENT OBSERVATIONS:
+                    {obs_text}
 
-            Test Answers:
-            {ans_text}
+                    PARENT QUESTIONNAIRE RESPONSES (GROUPED BY LEARNING STYLE CATEGORY):
+                    {ans_text}
 
-            Based on this data, identify the child's most likely learning style (Visual, Auditory,
-            Reading/Writing, Kinesthetic, or Mixed).
-            Then write a short paragraph (3–5 sentences) explaining your reasoning.
-            Finally, list 3–5 actionable suggestions for parent to support this learning style effectively.
-            Keep the tone positive and easy to understand.
-            Follow the below rules strictly:
-            - Provide the summary in HTML stlyed.
-            - Do not self introduced yourself.
-            """
+                    TASK:
+                    1. For each of the four VARK styles (Visual, Auditory, Reading/Writing, Kinesthetic),
+                    give a SHORT rating such as "Strong", "Moderate", or "Weak" plus at most one short reason.
+                    2. State the child's main learning style (or mixed style) in ONE simple sentence.
+                    3. Give 3 short, practical tips for parents (one sentence each) to support the child at home.
+
+                    IMPORTANT RULES:
+                    - Keep the total length under 180 words.
+                    - Use simple, warm, non-technical language suitable for parents.
+
+                    HTML FORMAT:
+                    <h5>Learning Style Summary</h5>
+                    <ul>
+                    <li>Visual          : ...</li>
+                    <li>Auditory        : ...</li>
+                    <li>Reading/Writing : ...</li>
+                    <li>Kinesthetic     : ...</li>
+                    </ul>
+
+                    <h5>Main Learning Style</h5>
+                    <p>...</p>
+
+                    <h6>Tips for Parents</h6>
+                    <ul>
+                    <li>Tip 1...</li>
+                    <li>Tip 2...</li>
+                    <li>Tip 3...</li>
+                    </ul>
+
+                    Do NOT mention that you are an AI model or refer to these instructions.
+                    """
 
             model = genai.GenerativeModel("gemini-2.5-flash")
             response = model.generate_content(prompt)
-            benchmark_summary = response.text.strip()
+            benchmark_summary = (response.text or "").strip()
 
-            if cached:
-                cursor.execute(
-                    """
-                    UPDATE ai_results
-                    SET data=%s, result=%s, updated_at=NOW()
-                    WHERE id=%s
-                    """,
-                    (data_payload, benchmark_summary, cached["id"]),
-                )
-            else:
-                cursor.execute(
-                    """
-                    INSERT INTO ai_results
-                    (child_id, module, data, result, created_at, updated_at)
-                    VALUES (%s, 'learning', %s, %s, NOW(), NOW())
-                    """,
-                    (child_id, data_payload, benchmark_summary),
-                )
+            
+            # 1) Remove any existing AI result for this child + module='learning'
+            cursor.execute(
+                """
+                DELETE FROM ai_results
+                WHERE child_id=%s AND module='learning'
+                """,
+                (child_id,),
+            )
+
+            # 2) Insert the new result
+            cursor.execute(
+                """
+                INSERT INTO ai_results
+                (child_id, module, data, result, created_at, updated_at)
+                VALUES (%s, 'learning', %s, %s, NOW(), NOW())
+                """,
+                (child_id, data_payload, benchmark_summary),
+            )
+            
             conn.commit()
             last_generated = datetime.now()
-
+            
         except Exception as e:
             if "token" in str(e).lower():
                 cursor.close()
@@ -2402,7 +2477,7 @@ def learning_style():
     elif not learning_notes and not test_answers:
         benchmark_summary = (
             "<p class='text-muted'>No data available yet. "
-            "Add observations or test answers first.</p>"
+            "Add observations or questionnaires answers first.</p>"
         )
 
     cursor.close()
@@ -3330,7 +3405,7 @@ def play_mini_game(game_id):
     child_id = session.get("selected_child")
     if not child_id:
         return redirect(url_for("select_child"))
-     conn = get_db_conn()
+    conn = get_db_conn()
     cursor = conn.cursor(dictionary=True)
 
     # Get child
