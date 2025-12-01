@@ -1776,6 +1776,10 @@ def academic_progress():
     if years and (selected_year is None or selected_year not in years):
         selected_year = years[0]
 
+    display_scores = scores
+    if selected_year:
+        display_scores = [row for row in scores if row["year"] == selected_year]
+
     yearly_records = []
     overall_avg = None
     subject_year_avgs = {}
@@ -1799,6 +1803,7 @@ def academic_progress():
                 sub: round(sum(vals) / len(vals), 1) for sub, vals in subject_scores.items()
             }
 
+
     cursor.close()
     conn.close()
 
@@ -1806,7 +1811,7 @@ def academic_progress():
         "dashboard.html",
         content_template="dashboard/_academic.html",
         selected_child={"id": child_id},
-        scores=scores,
+        scores=display_scores,
         subjects=subjects,
         years=years,
         selected_year=selected_year,
