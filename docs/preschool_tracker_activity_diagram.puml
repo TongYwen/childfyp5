@@ -1,0 +1,406 @@
+@startuml Preschool Performance Tracker - Overall Activity Diagram
+
+title Preschool Performance Tracker - Overall Activity Diagram
+
+|System|
+start
+:Display Login Page;
+
+|User|
+:Enter Credentials;
+
+|System|
+:Authenticate User;
+
+if (Valid Credentials?) then (yes)
+  if (User Role?) then (Parent)
+    |Parent|
+    :Access Parent Dashboard;
+
+    repeat
+      :Select Child Profile;
+
+      :Choose Activity;
+
+      switch (Activity Type?)
+      case (Preschool Development Tracking)
+        |Parent|
+        :Enter Developmental Observations;
+        note right
+          4 Domains:
+          - Social/Emotional
+          - Cognitive
+          - Language/Communication
+          - Movement/Physical
+        end note
+
+        |System|
+        :Store Observations in Database;
+        :Load CDC Milestone Benchmarks;
+
+        if (AI Results Cached?) then (no)
+          :Call Google Gemini AI;
+          :Analyze Against Benchmarks;
+          :Generate Development Insights;
+          :Cache AI Results;
+        else (yes)
+          :Retrieve Cached Results;
+        endif
+
+        |Parent|
+        :View Development Analysis;
+
+      case (Learning Style Analysis)
+        |Parent|
+        :Log Learning Observations;
+        :Complete Learning Style Questionnaires;
+        note right
+          Learning Styles:
+          - Visual
+          - Auditory
+          - Kinesthetic
+          - Reading/Writing
+        end note
+
+        |System|
+        :Store Responses in Database;
+
+        if (AI Results Cached?) then (no)
+          :Call Google Gemini AI;
+          :Analyze Learning Patterns;
+          :Identify Learning Preferences;
+          :Cache AI Results;
+        else (yes)
+          :Retrieve Cached Results;
+        endif
+
+        |Parent|
+        :View Learning Style Profile;
+
+      case (Academic Progress Tracking)
+        |Parent|
+        :Enter Subject Scores;
+        note right
+          Subjects:
+          - Math, English, Science
+          - Art, Music, etc.
+        end note
+
+        |System|
+        :Validate Scores (0-100);
+        :Store in Database;
+        :Generate Progress Charts;
+
+        |Parent|
+        :View Academic Trends;
+
+      case (AI Tutoring Recommendations)
+        |System|
+        :Aggregate All Child Data;
+        note right
+          Data Sources:
+          - Preschool Assessments
+          - Learning Style Profile
+          - Academic Performance
+        end note
+
+        if (AI Results Cached?) then (no)
+          :Call Google Gemini AI;
+          :Generate Holistic Analysis;
+          :Extract Product Recommendations;
+          :Generate E-commerce Links;
+          :Cache AI Results;
+        else (yes)
+          :Retrieve Cached Results;
+        endif
+
+        |Parent|
+        :View Tutoring Recommendations;
+        :View Product Recommendations;
+        note right
+          With links to:
+          - Amazon
+          - Shopee
+          - Lazada
+        end note
+
+      case (AI Insights Dashboard)
+        |System|
+        :Aggregate Academic & Game Data;
+
+        if (AI Results Cached?) then (no)
+          :Call Google Gemini AI;
+          :Analyze Performance Trends;
+          :Identify Strengths/Weaknesses;
+          :Generate Improvement Suggestions;
+          :Cache AI Results;
+        else (yes)
+          :Retrieve Cached Results;
+        endif
+
+        |Parent|
+        :View Comprehensive Insights;
+
+      case (Learning Plan Generator)
+        |System|
+        :Synthesize All AI Modules;
+        note right
+          Combines:
+          - Learning Style
+          - Preschool Development
+          - Tutoring Recommendations
+          - Academic Insights
+        end note
+
+        if (AI Results Cached?) then (no)
+          :Call Google Gemini AI;
+          :Create Weekly/Monthly Plan;
+          :Generate Subject Strategies;
+          :Recommend Activities;
+          :Cache AI Results;
+        else (yes)
+          :Retrieve Cached Results;
+        endif
+
+        |Parent|
+        :View Personalized Learning Plan;
+
+      case (Educational Resources)
+        |System|
+        :Load Resources from Database;
+        :Filter by Age & Type;
+
+        |Parent|
+        :Browse Resources;
+        note right
+          Types:
+          - Videos, Books
+          - Articles, Apps
+          - Games
+        end note
+        :Access External Resource URLs;
+
+      case (Interactive Mini-Games)
+        |Parent|
+        :Select Game;
+        note right
+          Games:
+          - Counting Animals
+          - Animal Vocabulary
+          - Animal Spelling
+        end note
+        :Play Game;
+
+        |System|
+        :Track Score & Time;
+        :Store Game Results;
+
+        |Parent|
+        :View Game Performance;
+
+      case (Child Management)
+        |Parent|
+        :Add/Edit/Delete Child Profile;
+        note right
+          Child Info:
+          - Name, DOB
+          - Gender, Grade
+          - Notes
+        end note
+
+        |System|
+        :Update Database;
+        :Calculate Age;
+
+      case (Profile Management)
+        |Parent|
+        :Update Profile Information;
+        :Change Password;
+
+        |System|
+        :Update User Profile;
+        :Hash New Password;
+
+      endswitch
+
+      :Continue Using System;
+
+    repeat while (More Activities?) is (yes) not (no)
+
+    |Parent|
+    :Logout;
+
+  else (Admin)
+    |Admin|
+    :Access Admin Dashboard;
+
+    repeat
+      :Choose Admin Activity;
+
+      switch (Admin Task?)
+      case (User Management)
+        |Admin|
+        :View All Users;
+        :Select User Action;
+
+        if (Action Type?) then (Edit)
+          :Modify User Details;
+          |System|
+          :Update Database;
+        else if (Delete) then
+          :Soft Delete User;
+          |System|
+          :Set deleted_at timestamp;
+          :Set is_active = 0;
+        else if (Restore) then
+          :Restore Deleted User;
+          |System|
+          :Clear deleted_at;
+          :Set is_active = 1;
+        else (Toggle Protection)
+          :Toggle Deletion Protection;
+          |System|
+          :Update protected_from_deletion flag;
+        endif
+
+      case (Resource Management)
+        |Admin|
+        :Create/Edit/Delete Resources;
+        note right
+          Resource Details:
+          - Title, Type
+          - Description
+          - Age Range, URL
+        end note
+
+        |System|
+        :Update Resources Database;
+
+      case (Game Management)
+        |Admin|
+        :Edit Game Metadata;
+        :Set Difficulty & Age Range;
+        :Toggle Active Status;
+
+        |System|
+        :Update Games Database;
+
+      case (Test Management)
+        |Admin|
+        :Create Learning Style Tests;
+        :Add Multimedia Questions;
+        note right
+          Question Types:
+          - Text
+          - Images
+          - Audio
+        end note
+        :Categorize by Learning Style;
+
+        |System|
+        :Update Tests & Questions Database;
+
+      case (Manual Cleanup)
+        |Admin|
+        :Trigger Manual Cleanup;
+
+        |System|
+        :Execute Inactive User Check;
+        :Execute Permanent Deletion;
+        :Generate Statistics;
+
+        |Admin|
+        :View Cleanup Results;
+
+      endswitch
+
+      :Continue Admin Tasks;
+
+    repeat while (More Tasks?) is (yes) not (no)
+
+    |Admin|
+    :Logout;
+
+  endif
+else (no)
+  |System|
+  :Display Error Message;
+  if (Forgot Password?) then (yes)
+    |User|
+    :Enter Email;
+
+    |System|
+    :Generate Reset Token;
+    :Send Password Reset Email;
+
+    |Email Service|
+    :Deliver Email via Gmail SMTP;
+
+    |User|
+    :Click Reset Link;
+    :Enter New Password;
+
+    |System|
+    :Validate Token;
+    :Hash New Password;
+    :Update Database;
+  endif
+
+  stop
+endif
+
+|System|
+stop
+
+|#LightBlue|Scheduled Tasks|
+partition "Automated Background Processes" {
+  fork
+    :Daily Check (2:00 AM UTC);
+
+    while (Check All Users) is (more users)
+      :Calculate Days Since Last Login;
+
+      if (Inactive Days?) then (23 days)
+        :Send First Warning Email;
+        :Set inactive_warning_sent flag;
+
+        |Email Service|
+        :Deliver Warning via Gmail SMTP;
+
+      else if (28 days) then
+        :Send Final Warning Email;
+
+        |Email Service|
+        :Deliver Final Warning via Gmail SMTP;
+
+      else if (30 days) then
+        if (Protected from Deletion?) then (no)
+          :Soft Delete User;
+          :Set deleted_at timestamp;
+          :Set is_active = 0;
+          :Send Deletion Confirmation Email;
+
+          |Email Service|
+          :Deliver Confirmation via Gmail SMTP;
+        else (yes)
+          :Skip Deletion (Protected);
+        endif
+      endif
+    endwhile (no more users)
+
+  fork again
+    :Daily Permanent Deletion (3:00 AM UTC);
+
+    while (Check Soft-Deleted Users) is (more users)
+      :Calculate Days Since Soft Deletion;
+
+      if (Deleted > 90 days?) then (yes)
+        :Permanently Delete User;
+        :Remove from Database;
+      endif
+    endwhile (no more users)
+
+  end fork
+}
+
+@enduml
