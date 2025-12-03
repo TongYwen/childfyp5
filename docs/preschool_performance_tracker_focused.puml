@@ -1,0 +1,174 @@
+@startuml Preschool Performance Tracker Module - Activity Diagram
+
+title Preschool Performance Tracker Module - Activity Diagram
+
+|Parent|
+start
+:Login to System;
+:Access Dashboard;
+:Navigate to Preschool Performance Tracker;
+:Select Child;
+
+repeat
+  :Choose Assessment Domain;
+  note right
+    4 Assessment Domains:
+    • Social/Emotional Milestones
+    • Cognitive Milestones
+    • Language/Communication
+    • Movement/Physical Development
+  end note
+
+  :Enter Developmental Observations;
+  note right
+    Parent describes specific behaviors,
+    milestones, or observations for
+    the selected domain
+  end note
+
+  |System|
+  :Validate Input;
+  :Store Observation in Database;
+  note right
+    Table: preschool_assessments
+    Fields:
+    - child_id
+    - domain (social/cognitive/language/movement)
+    - observation (text)
+    - assessment_date
+    - created_at
+  end note
+
+repeat while (Add More Observations?) is (yes) not (no)
+
+|Parent|
+:Request AI Analysis;
+
+|System|
+:Retrieve All Child Observations;
+:Load CDC Developmental Milestones;
+note right
+  Source: developmental_milestones.csv
+  Age-appropriate benchmarks for:
+  - Social/Emotional skills
+  - Cognitive development
+  - Language/Communication abilities
+  - Physical/Motor development
+end note
+
+:Calculate Data Hash;
+note right
+  Hash based on:
+  - All observations
+  - Child's age
+  - Assessment dates
+end note
+
+:Check AI Results Cache;
+
+if (Cached Result Exists AND\nNo Regeneration Requested?) then (yes)
+  |System|
+  :Retrieve Cached AI Analysis;
+  note right
+    Table: ai_results
+    Fields:
+    - child_id
+    - module = 'preschool'
+    - result_data (JSON)
+    - data_hash
+    - generated_at
+  end note
+
+else (no)
+  |System|
+  :Prepare Prompt for Google Gemini AI;
+  note right
+    Prompt includes:
+    - Child's age
+    - All developmental observations
+    - CDC benchmark data for age group
+    - Request for analysis and recommendations
+  end note
+
+  |Google Gemini AI|
+  :Call Gemini 2.5 Flash API;
+  :Analyze Observations vs Benchmarks;
+  :Generate Age-Appropriate Insights;
+  note right
+    AI Analysis includes:
+    - Developmental progress assessment
+    - Comparison to age norms
+    - Identified strengths
+    - Areas for improvement
+    - Specific recommendations
+    - Activity suggestions
+  end note
+
+  |System|
+  :Receive AI Response;
+  :Cache Result in Database;
+  note right
+    Store with data hash for
+    future cache hits
+  end note
+endif
+
+:Format Analysis Results;
+
+|Parent|
+:View Developmental Analysis;
+note right
+  Display shows:
+  - Domain-by-domain assessment
+  - Strengths and achievements
+  - Areas needing attention
+  - Age-appropriate recommendations
+  - Suggested activities and strategies
+  - Comparison to developmental milestones
+end note
+
+:Review Recommendations;
+
+if (Need More Details?) then (yes)
+  :View Domain-Specific Insights;
+  :Read Activity Suggestions;
+else (no)
+endif
+
+if (Regenerate Analysis with Fresh AI?) then (yes)
+  |Parent|
+  :Click "Regenerate Analysis";
+  |System|
+  :Force AI Re-analysis;
+  note right
+    Bypasses cache and calls
+    Gemini AI again with current data
+  end note
+  :Update Cached Results;
+  |Parent|
+  :View Updated Analysis;
+else (no)
+endif
+
+if (Export or Save Report?) then (yes)
+  |System|
+  :Generate Assessment Report;
+  |Parent|
+  :Download/Save Report;
+else (no)
+endif
+
+if (Add More Observations?) then (yes)
+  |Parent|
+  :Return to Observation Entry;
+  note right
+    Parent can add more observations
+    and re-run analysis to see
+    updated insights
+  end note
+else (no)
+  :Return to Dashboard;
+  stop
+endif
+
+@enduml
