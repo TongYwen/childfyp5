@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-center vh-100 bg-cover">
+  <div class="auth-box">
+    <h3 class="text-center mb-3">Login with Phone</h3>
+
+    <!-- Flash messages -->
+    {% if _flashes %}
+      {% for category, msg in _flashes %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% if not show_otp %}
+    <!-- Step 1: Enter phone number -->
+    <form method="POST">
+      <input type="hidden" name="action" value="send_otp">
+
+      <div class="mb-3">
+        <input type="tel" class="form-control" name="phone_number" placeholder="Phone number (e.g., +60123456789)" required>
+        <small class="form-text text-muted">Please include country code (e.g., +60 for Malaysia)</small>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">Send Verification Code</button>
+    </form>
+    {% else %}
+    <!-- Step 2: Enter OTP -->
+    <form method="POST">
+      <input type="hidden" name="action" value="verify_otp">
+
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        Verification code sent to <strong>{{ phone_number }}</strong>
+      </div>
+
+      <div class="mb-3">
+        <input type="text" class="form-control text-center" name="otp_code" placeholder="Enter 6-digit code" maxlength="6" required pattern="[0-9]{6}">
+        <small class="form-text text-muted">Code expires in 10 minutes</small>
+      </div>
+
+      <button type="submit" class="btn btn-success w-100">Verify & Login</button>
+    </form>
+
+    <div class="text-center mt-3">
+      <a href="{{ url_for('login_phone') }}" class="btn btn-outline-secondary btn-sm">Resend Code</a>
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+      <div class="mb-2">
+        <small>
+          <a href="{{ url_for('login') }}" class="auth-link">Login with Email</a>
+        </small>
+      </div>
+      <div class="mb-2">
+        <small>
+          Don't have an account?
+          <a href="{{ url_for('register_select') }}" class="auth-link">Sign Up</a>
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

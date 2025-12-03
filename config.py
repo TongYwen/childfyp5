@@ -20,6 +20,11 @@ class Config:
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER")
     ADMIN_PASSKEY = os.getenv("ADMIN_PASSKEY")
 
+    # Twilio SMS Configuration for Phone Authentication
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+    TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
+
 # Session management configuration
     SESSION_COOKIE_SECURE = True  # Enabled for production HTTPS
     SESSION_COOKIE_HTTPONLY = True  # Prevents JavaScript access to session cookie

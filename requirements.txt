@@ -14,3 +14,5 @@ pandas
 google.generativeai
 math
 json
+twilio
+phonenumbers

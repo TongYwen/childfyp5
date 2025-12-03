@@ -21,6 +21,10 @@ import os
 import json
 from dotenv import load_dotenv
 import time
+import random
+from twilio.rest import Client
+import phonenumbers
+from phonenumbers import NumberParseException
 
 # -------------------------------------------------
 # App & extensions
@@ -49,6 +53,14 @@ login_manager = LoginManager(app)
 login_manager.login_view = "login"
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
+
+# Initialize Twilio client for SMS
+twilio_client = None
+if app.config.get("TWILIO_ACCOUNT_SID") and app.config.get("TWILIO_AUTH_TOKEN"):
+    twilio_client = Client(
+        app.config["TWILIO_ACCOUNT_SID"],
+        app.config["TWILIO_AUTH_TOKEN"]
+    )
 
 # Initialize APScheduler for automated tasks
 scheduler = APScheduler()
@@ -314,6 +326,130 @@ def is_valid_name(name: str) -> bool:
     # Allow only letters (any language) and spaces
     pattern = r"^[A-Za-z\s]+$"
     return re.match(pattern, name.strip()) is not None
+
+
+# -------------------------------------------------
+# Phone Authentication Helpers
+# -------------------------------------------------
+def is_valid_phone_number(phone: str) -> bool:
+    """
+    Validate phone number format using phonenumbers library.
+    Accepts international format (e.g., +60123456789)
+    """
+    if not phone or not phone.strip():
+        return False
+    try:
+        parsed = phonenumbers.parse(phone, None)
+        return phonenumbers.is_valid_number(parsed)
+    except NumberParseException:
+        return False
+
+
+def generate_otp():
+    """Generate a 6-digit OTP code"""
+    return str(random.randint(100000, 999999))
+
+
+def send_otp_sms(phone_number, otp_code):
+    """
+    Send OTP code via SMS using Twilio.
+    Returns True if successful, False otherwise.
+    """
+    if not twilio_client:
+        print("Twilio client not configured. OTP:", otp_code)
+        return False
+
+    try:
+        message = twilio_client.messages.create(
+            body=f"Your ChildGrowth Insights verification code is: {otp_code}. Valid for 10 minutes.",
+            from_=app.config["TWILIO_PHONE_NUMBER"],
+            to=phone_number
+        )
+        print(f"SMS sent successfully. SID: {message.sid}")
+        return True
+    except Exception as e:
+        print(f"Error sending SMS: {str(e)}")
+        return False
+
+
+def save_otp_to_db(phone_number, otp_code):
+    """Save OTP code to database with 10-minute expiry"""
+    conn = get_db_conn()
+    cursor = conn.cursor()
+
+    expires_at = datetime.now() + timedelta(minutes=10)
+
+    cursor.execute(
+        """
+        INSERT INTO phone_otp (phone_number, otp_code, expires_at)
+        VALUES (%s, %s, %s)
+        """,
+        (phone_number, otp_code, expires_at)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def verify_otp(phone_number, otp_code):
+    """
+    Verify OTP code for a phone number.
+    Returns True if valid, False otherwise.
+    """
+    conn = get_db_conn()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        """
+        SELECT id, otp_code, expires_at, attempts
+        FROM phone_otp
+        WHERE phone_number = %s
+        AND is_verified = 0
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        (phone_number,)
+    )
+    otp_record = cursor.fetchone()
+
+    if not otp_record:
+        cursor.close()
+        conn.close()
+        return False
+
+    # Check if OTP has expired
+    if datetime.now() > otp_record["expires_at"]:
+        cursor.close()
+        conn.close()
+        return False
+
+    # Check if too many attempts (max 3)
+    if otp_record["attempts"] >= 3:
+        cursor.close()
+        conn.close()
+        return False
+
+    # Verify OTP code
+    if otp_record["otp_code"] == otp_code:
+        # Mark as verified
+        cursor.execute(
+            "UPDATE phone_otp SET is_verified = 1 WHERE id = %s",
+            (otp_record["id"],)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    else:
+        # Increment attempts
+        cursor.execute(
+            "UPDATE phone_otp SET attempts = attempts + 1 WHERE id = %s",
+            (otp_record["id"],)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return False
 
 def is_valid_grade_level(grade_level: str) -> bool:
     """
@@ -608,6 +744,234 @@ def register_admin():
         return redirect(url_for("login"))
 
     return render_template("register_admin.html")
+
+
+# -------------------------------------------------
+# Phone Authentication Routes
+# -------------------------------------------------
+@app.route("/register/phone", methods=["GET", "POST"])
+def register_phone():
+    """Phone-based registration for parents"""
+    if request.method == "POST":
+        action = request.form.get("action", "send_otp")
+
+        if action == "send_otp":
+            # Step 1: Send OTP
+            name = request.form.get("name", "").strip()
+            phone_number = request.form.get("phone_number", "").strip()
+            password = request.form.get("password", "")
+            confirm_password = request.form.get("confirm_password", "")
+
+            # Validate inputs
+            if not all([name, phone_number, password, confirm_password]):
+                flash("Please fill all fields", "warning")
+                return redirect(url_for('register_phone'))
+
+            if password != confirm_password:
+                flash("Passwords do not match.", "danger")
+                return redirect(url_for("register_phone"))
+
+            if not is_valid_name(name):
+                flash("Name must contain only alphabet letters and spaces.", "danger")
+                return redirect(url_for("register_phone"))
+
+            if not is_valid_phone_number(phone_number):
+                flash("Please enter a valid phone number in international format (e.g., +60123456789).", "danger")
+                return redirect(url_for("register_phone"))
+
+            if not is_strong_password(password):
+                flash("Password must be at least 8 characters long and include one uppercase letter, one lowercase letter, and one symbol.", "warning")
+                return redirect(url_for('register_phone'))
+
+            # Check for duplicate phone number
+            conn = get_db_conn()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id FROM users WHERE phone_number = %s", (phone_number,))
+            existing_user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            if existing_user:
+                flash("An account with this phone number already exists.", "danger")
+                return redirect(url_for("register_phone"))
+
+            # Generate and send OTP
+            otp_code = generate_otp()
+            save_otp_to_db(phone_number, otp_code)
+
+            # Send OTP via SMS
+            if send_otp_sms(phone_number, otp_code):
+                # Store form data in session for verification step
+                session['phone_registration'] = {
+                    'name': name,
+                    'phone_number': phone_number,
+                    'password': password
+                }
+                flash(f"Verification code sent to {phone_number}. Please enter the code.", "success")
+                return render_template("register_phone.html", show_otp=True, phone_number=phone_number)
+            else:
+                flash("Error sending verification code. Please try again or contact support.", "danger")
+                return redirect(url_for("register_phone"))
+
+        elif action == "verify_otp":
+            # Step 2: Verify OTP and create account
+            otp_code = request.form.get("otp_code", "").strip()
+            registration_data = session.get('phone_registration')
+
+            if not registration_data:
+                flash("Session expired. Please start registration again.", "warning")
+                return redirect(url_for("register_phone"))
+
+            if not otp_code:
+                flash("Please enter the verification code.", "warning")
+                return render_template("register_phone.html", show_otp=True, phone_number=registration_data['phone_number'])
+
+            # Verify OTP
+            if verify_otp(registration_data['phone_number'], otp_code):
+                # Create user account
+                hashed_password = bcrypt.generate_password_hash(registration_data['password']).decode("utf-8")
+
+                conn = get_db_conn()
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    INSERT INTO users (name, phone_number, email, password, role)
+                    VALUES (%s, %s, %s, %s, 'parent')
+                    """,
+                    (registration_data['name'], registration_data['phone_number'], '', hashed_password),
+                )
+                conn.commit()
+                cursor.close()
+                conn.close()
+
+                # Clear session data
+                session.pop('phone_registration', None)
+
+                flash("Account created successfully! Please log in.", "success")
+                return redirect(url_for("login_phone"))
+            else:
+                flash("Invalid or expired verification code. Please try again.", "danger")
+                return render_template("register_phone.html", show_otp=True, phone_number=registration_data['phone_number'])
+
+    return render_template("register_phone.html", show_otp=False)
+
+
+@app.route("/login/phone", methods=["GET", "POST"])
+def login_phone():
+    """Phone-based login with OTP"""
+    if request.method == "POST":
+        action = request.form.get("action", "send_otp")
+
+        if action == "send_otp":
+            # Step 1: Send OTP
+            phone_number = request.form.get("phone_number", "").strip()
+
+            if not phone_number:
+                flash("Please enter your phone number.", "warning")
+                return redirect(url_for("login_phone"))
+
+            if not is_valid_phone_number(phone_number):
+                flash("Please enter a valid phone number in international format (e.g., +60123456789).", "danger")
+                return redirect(url_for("login_phone"))
+
+            # Check if user exists
+            conn = get_db_conn()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                "SELECT id, name, phone_number, role, is_active, deleted_at FROM users WHERE phone_number = %s",
+                (phone_number,)
+            )
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            if not user:
+                flash("No account found with this phone number.", "danger")
+                return redirect(url_for("login_phone"))
+
+            # Check if account has been deleted
+            if user.get("deleted_at"):
+                flash("Your account has been deleted. Please contact an administrator to restore it.", "danger")
+                return redirect(url_for("login_phone"))
+
+            # Check if account is active
+            if not user.get("is_active", 1):
+                flash("Your account has been deactivated. Please contact an administrator.", "danger")
+                return redirect(url_for("login_phone"))
+
+            # Generate and send OTP
+            otp_code = generate_otp()
+            save_otp_to_db(phone_number, otp_code)
+
+            if send_otp_sms(phone_number, otp_code):
+                session['phone_login'] = phone_number
+                flash(f"Verification code sent to {phone_number}. Please enter the code.", "success")
+                return render_template("login_phone.html", show_otp=True, phone_number=phone_number)
+            else:
+                flash("Error sending verification code. Please try again.", "danger")
+                return redirect(url_for("login_phone"))
+
+        elif action == "verify_otp":
+            # Step 2: Verify OTP and log in
+            otp_code = request.form.get("otp_code", "").strip()
+            phone_number = session.get('phone_login')
+
+            if not phone_number:
+                flash("Session expired. Please start login again.", "warning")
+                return redirect(url_for("login_phone"))
+
+            if not otp_code:
+                flash("Please enter the verification code.", "warning")
+                return render_template("login_phone.html", show_otp=True, phone_number=phone_number)
+
+            # Verify OTP
+            if verify_otp(phone_number, otp_code):
+                # Get user and log in
+                conn = get_db_conn()
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute(
+                    "SELECT id, name, email, phone_number, role FROM users WHERE phone_number = %s",
+                    (phone_number,)
+                )
+                user = cursor.fetchone()
+
+                # Update last_login timestamp and reactivate account
+                cursor.execute(
+                    "UPDATE users SET last_login = %s, is_active = 1, inactive_warning_sent = NULL WHERE id = %s",
+                    (datetime.now(), user["id"])
+                )
+                conn.commit()
+                cursor.close()
+                conn.close()
+
+                user_obj = User(
+                    user["id"], user["name"], user["email"] or user["phone_number"], user["role"]
+                )
+
+                # Regenerate session to prevent session fixation attacks
+                session.clear()
+                session.regenerate = True
+
+                login_user(user_obj)
+
+                # Role-based session configuration
+                if normalize_role(user_obj.role) == "parent":
+                    session.permanent = True
+                    session['last_activity'] = datetime.now().isoformat()
+                else:
+                    session.permanent = True
+
+                flash("Login successful!", "success")
+
+                next_page = request.args.get("next")
+                if next_page and next_page.startswith("/"):
+                    return redirect(next_page)
+                return redirect(url_for("dashboard"))
+            else:
+                flash("Invalid or expired verification code. Please try again.", "danger")
+                return render_template("login_phone.html", show_otp=True, phone_number=phone_number)
+
+    return render_template("login_phone.html", show_otp=False)
 
 
 @app.route("/login", methods=["GET", "POST"])

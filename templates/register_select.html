@@ -16,17 +16,35 @@
         <p class="text-center mb-4" style="color: #555;">Select your account type to continue</p>
         <div class="d-grid gap-3">
 
-          <!-- Parent Register Card -->
+          <!-- Parent Register Card (Email) -->
           <a href="{{ url_for('register_parent') }}" class="register-card text-decoration-none">
             <div class="card border-0 shadow-sm">
               <div class="card-body d-flex align-items-center p-4">
                 <div class="register-icon bg-primary-soft me-3">
-                  <i class="fas fa-user-friends text-primary"></i>
+                  <i class="fas fa-envelope text-primary"></i>
                 </div>
 
                 <div>
-                  <h5 class="card-title mb-1" style="color: #333;">Parent</h5>
-                  <p class="card-text text-muted mb-0 small">For Parent or Guardians</p>
+                  <h5 class="card-title mb-1" style="color: #333;">Parent (Email)</h5>
+                  <p class="card-text text-muted mb-0 small">Register with email address</p>
+                </div>
+
+                <i class="fas fa-chevron-right ms-auto text-muted"></i>
+              </div>
+            </div>
+          </a>
+
+          <!-- Parent Register Card (Phone) -->
+          <a href="{{ url_for('register_phone') }}" class="register-card text-decoration-none">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body d-flex align-items-center p-4">
+                <div class="register-icon bg-success-soft me-3">
+                  <i class="fas fa-mobile-alt text-success"></i>
+                </div>
+
+                <div>
+                  <h5 class="card-title mb-1" style="color: #333;">Parent (Phone)</h5>
+                  <p class="card-text text-muted mb-0 small">Register with phone number</p>
                 </div>
 
                 <i class="fas fa-chevron-right ms-auto text-muted"></i>
