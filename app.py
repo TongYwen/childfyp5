@@ -3644,37 +3644,84 @@ def admin_dashboard():
 @roles_required("admin")
 def admin_users():
     search = request.args.get("q", "").strip()
+    sort_by = request.args.get("sort", "created_at")
+    order = request.args.get("order", "desc")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+
+    # Whitelist allowed columns to prevent SQL injection
+    allowed_columns = ["id", "name", "email", "role", "created_at"]
+    if sort_by not in allowed_columns:
+        sort_by = "created_at"
+
+    # Validate order direction
+    if order not in ["asc", "desc"]:
+        order = "desc"
+
+    # Validate pagination parameters
+    if page < 1:
+        page = 1
+    if per_page not in [10, 25, 50, 100]:
+        per_page = 10
 
     conn = get_db_conn()
     cursor = conn.cursor(dictionary=True)
 
+    # Build WHERE clause
+    where_clause = ""
+    params = []
     if search:
         like = f"%{search}%"
-        cursor.execute(
-            """
-            SELECT id, name, email, role, created_at
-            FROM users
-            WHERE name LIKE %s
+        where_clause = """WHERE name LIKE %s
                OR email LIKE %s
-               OR CAST(id AS CHAR) LIKE %s
-            ORDER BY created_at DESC
-            """,
-            (like, like, like),
-        )
-    else:
-        cursor.execute(
-            """
-            SELECT id, name, email, role, created_at
-            FROM users
-            ORDER BY created_at DESC
-            """
-        )
+               OR CAST(id AS CHAR) LIKE %s"""
+        params = [like, like, like]
+
+    # Get total count
+    cursor.execute(
+        f"""
+        SELECT COUNT(*) as total
+        FROM users
+        {where_clause}
+        """,
+        params,
+    )
+    total = cursor.fetchone()["total"]
+
+    # Calculate pagination
+    total_pages = (total + per_page - 1) // per_page  # Ceiling division
+    offset = (page - 1) * per_page
+
+    # Build ORDER BY clause
+    order_clause = f"ORDER BY {sort_by} {order.upper()}"
+
+    # Get paginated results
+    cursor.execute(
+        f"""
+        SELECT id, name, email, role, created_at
+        FROM users
+        {where_clause}
+        {order_clause}
+        LIMIT %s OFFSET %s
+        """,
+        params + [per_page, offset],
+    )
 
     users = cursor.fetchall()
     cursor.close()
     conn.close()
 
-    return render_template("admin/users.html", users=users, search=search)
+    return render_template(
+        "admin/users.html",
+        users=users,
+        search=search,
+        sort_by=sort_by,
+        order=order,
+        page=page,
+        per_page=per_page,
+        total=total,
+        total_pages=total_pages,
+    )
 
 
 @app.route("/admin/users/<int:user_id>/edit", methods=["GET", "POST"])
