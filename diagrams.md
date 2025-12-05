@@ -204,46 +204,45 @@ graph TB
 graph TB
     subgraph Actors
         Parent((Parent))
-        Admin((Admin))
-        System((System))
+        System((System/Gemini AI))
     end
 
     subgraph "Tutoring Recommendations System"
         ViewRecommendations[View Tutoring Recommendations]
-        RequestTutoring[Request Tutoring]
-        ProvideFeedback[Provide Feedback]
-        ImplementRecommendations[Implement Recommendations]
-        UpdateProgress[Update Implementation Progress]
-        GenerateRecommendations[Generate Recommendations]
-        AnalyzePerformance[Analyze Performance Data]
-        MatchLearningStyle[Match Learning Style]
-        SuggestActivities[Suggest Activities]
-        SuggestResources[Suggest Resources]
-        SuggestStrategies[Suggest Strategies]
-        CreatePlan[Create Personalized Plan]
-        TrackEffectiveness[Track Effectiveness]
+        ViewProducts[View Product Recommendations]
+        GenerateRecommendations[Generate/Regenerate Recommendations]
+        CheckCached[Check Cached Results]
+        FetchLearningData[Fetch Learning Style Analysis]
+        FetchPreschoolData[Fetch Preschool Analysis]
+        AnalyzeCombinedData[Analyze Combined Data]
+        IdentifyWeakAreas[Identify Potential Weak Areas]
+        RecommendFocus[Recommend Focus Areas]
+        SuggestActivities[Suggest Personalized Activities]
+        ExtractProducts[Extract Product Recommendations]
+        GenerateShoppingLinks[Generate Shopping Links]
+        StoreProducts[Store Products in Database]
+        CacheResults[Cache Recommendations]
     end
 
     Parent --> ViewRecommendations
-    Parent --> RequestTutoring
-    Parent --> ProvideFeedback
+    Parent --> ViewProducts
+    Parent --> GenerateRecommendations
 
-    Admin --> ViewRecommendations
-    Admin --> ImplementRecommendations
-    Admin --> UpdateProgress
+    System --> AnalyzeCombinedData
+    System --> ExtractProducts
 
-    System --> GenerateRecommendations
-    System --> AnalyzePerformance
-    System --> MatchLearningStyle
-
-    GenerateRecommendations -.<<include>>.-> AnalyzePerformance
-    GenerateRecommendations -.<<include>>.-> MatchLearningStyle
-    GenerateRecommendations -.<<include>>.-> SuggestActivities
-    GenerateRecommendations -.<<include>>.-> SuggestResources
-    GenerateRecommendations -.<<include>>.-> SuggestStrategies
-    GenerateRecommendations -.<<include>>.-> CreatePlan
-    ImplementRecommendations -.<<extend>>.-> TrackEffectiveness
-    UpdateProgress -.<<extend>>.-> ProvideFeedback
+    GenerateRecommendations -.<<include>>.-> CheckCached
+    GenerateRecommendations -.<<include>>.-> FetchLearningData
+    GenerateRecommendations -.<<include>>.-> FetchPreschoolData
+    GenerateRecommendations -.<<include>>.-> AnalyzeCombinedData
+    AnalyzeCombinedData -.<<include>>.-> IdentifyWeakAreas
+    AnalyzeCombinedData -.<<include>>.-> RecommendFocus
+    AnalyzeCombinedData -.<<include>>.-> SuggestActivities
+    AnalyzeCombinedData -.<<include>>.-> ExtractProducts
+    ExtractProducts -.<<include>>.-> GenerateShoppingLinks
+    ExtractProducts -.<<include>>.-> StoreProducts
+    GenerateRecommendations -.<<include>>.-> CacheResults
+    ViewProducts -.<<extend>>.-> GenerateRecommendations
 ```
 
 ---
@@ -467,43 +466,60 @@ flowchart TD
 ### 4.2.6 Tutoring Recommendations Module
 ```mermaid
 flowchart TD
-    Start([Start]) --> TriggerEvent{Trigger Event}
+    Start([Start]) --> LoadPage[Parent Navigates to Tutoring Page]
+    LoadPage --> LoadChild[Load Child Data]
+    LoadChild --> FetchAIResults[Fetch AI Results: Learning Style + Preschool]
+    FetchAIResults --> CheckData{Has Learning or Preschool Data?}
 
-    TriggerEvent -->|New Assessment| LoadLearningStyle
-    TriggerEvent -->|Poor Performance| LoadPerformanceData
-    TriggerEvent -->|Manual Request| LoadAllData
+    CheckData -->|No| ShowNoData[Show 'No AI analysis data available' Message]
+    ShowNoData --> End1([End])
 
-    LoadLearningStyle[Load Learning Style Profile] --> CollectData
-    LoadPerformanceData[Load Performance Data] --> CollectData
-    LoadAllData[Load All Student Data] --> CollectData
+    CheckData -->|Yes| FetchLearning[Fetch Learning Style Analysis]
+    FetchLearning --> FetchPreschool[Fetch Preschool Analysis]
+    FetchPreschool --> CreatePayload[Create JSON Data Payload]
+    CreatePayload --> CheckCached[Fetch Cached Tutoring Result]
+    CheckCached --> CompareData{Data Changed or Regen?}
 
-    CollectData[Collect All Relevant Data] --> AnalyzeProgress[Analyze Academic Progress]
-    AnalyzeProgress --> AnalyzePerformance[Analyze Performance Metrics]
-    AnalyzePerformance --> IdentifyWeaknesses[Identify Weak Areas]
-    IdentifyWeaknesses --> IdentifyStrengths[Identify Strengths]
-    IdentifyStrengths --> MatchLearningStyle[Match to Learning Style]
+    CompareData -->|Cached & Same| FetchProducts[Fetch Product Recommendations]
+    FetchProducts --> DisplayCached[Display Cached Recommendations + Products]
+    DisplayCached --> End2([End])
 
-    MatchLearningStyle --> GenerateActivities[Generate Activity Recommendations]
-    GenerateActivities --> GenerateResources[Generate Resource Recommendations]
-    GenerateResources --> GenerateStrategies[Generate Teaching Strategies]
+    CompareData -->|Changed or Regen| BuildPrompt[Build AI Prompt with Child Profile]
+    BuildPrompt --> AddLearningContext[Add Learning Style Analysis to Prompt]
+    AddLearningContext --> AddPreschoolContext[Add Preschool Analysis to Prompt]
+    AddPreschoolContext --> DefineOutput[Define 4 Output Sections]
+    DefineOutput --> SendToGemini[Send to Gemini AI]
 
-    GenerateStrategies --> PrioritizeRecommendations[Prioritize by Impact]
-    PrioritizeRecommendations --> CreatePlan[Create Personalized Tutoring Plan]
-    CreatePlan --> ReviewPlan{Admin Review Required?}
+    SendToGemini --> GeminiAnalyze[AI Analyzes Combined Data]
+    GeminiAnalyze --> IdentifyWeakAreas[Identify Potential Weak Areas]
+    IdentifyWeakAreas --> RecommendFocus[Recommend Focus Areas]
+    RecommendFocus --> SuggestActivities[Suggest Personalized Activities]
+    SuggestActivities --> GenerateProducts[Generate Product Recommendations with Tags]
+    GenerateProducts --> FormatHTML[Format as HTML Response]
 
-    ReviewPlan -->|Yes| SendToAdmin[Send to Admin for Review]
-    SendToAdmin --> AdminApproval{Admin Approves?}
-    AdminApproval -->|No| AdjustRecommendations[Admin Adjusts Recommendations]
-    AdjustRecommendations --> CreatePlan
-    AdminApproval -->|Yes| PublishPlan
+    FormatHTML --> ExtractProducts[Extract Product Tags with Regex]
+    ExtractProducts --> ParseProductFields[Parse Product Fields: Name, Type, Category, etc.]
+    ParseProductFields --> GenerateLinks[Generate Shopping Links: Amazon, Shopee, Lazada]
+    GenerateLinks --> CalculatePriceRange[Calculate Price Range: Budget/Mid/Premium]
+    CalculatePriceRange --> InsertProducts[Insert into product_recommendations Table]
 
-    ReviewPlan -->|No| PublishPlan[Publish Recommendations]
-    PublishPlan --> NotifyParent[Notify Parent]
-    NotifyParent --> NotifyAdmin[Notify Admin]
-    NotifyAdmin --> DisplayRecommendations[Display in Dashboard]
-    DisplayRecommendations --> TrackImplementation[Track Implementation]
-    TrackImplementation --> ScheduleFollowUp[Schedule Follow-up Review]
-    ScheduleFollowUp --> End([End])
+    InsertProducts --> RemoveTags[Remove Product Tags from HTML]
+    RemoveTags --> SaveOrUpdate{Cached Result Exists?}
+
+    SaveOrUpdate -->|Yes| UpdateCache[UPDATE ai_results SET result]
+    SaveOrUpdate -->|No| InsertCache[INSERT INTO ai_results]
+
+    UpdateCache --> CommitDB[Commit to Database]
+    InsertCache --> CommitDB
+    CommitDB --> FetchProductsNew[Fetch Top 10 Product Recommendations]
+    FetchProductsNew --> DisplayNew[Display Recommendations + Products]
+    DisplayNew --> End3([End])
+
+    SendToGemini -->|Error| HandleError{Check Error Type}
+    HandleError -->|Token Limit| ReturnTokenError[Return Token Limit Error]
+    ReturnTokenError --> End4([End])
+    HandleError -->|Other Error| ShowError[Show Error Message]
+    ShowError --> End5([End])
 ```
 
 ---
@@ -939,137 +955,96 @@ sequenceDiagram
 ### 4.3.6 Tutoring Recommendations Module
 ```mermaid
 sequenceDiagram
-    actor System
-    participant Service as Recommendation Service
-    participant Aggregator as Data Aggregator
-    participant AI as Recommendation AI
-    participant DB as Database
-    participant Notification as Notification Service
-    participant UI as Admin UI
-    participant Controller as Tutoring Controller
-    actor Admin
     actor Parent
+    participant UI as Parent UI
+    participant Flask as Flask App /dashboard/tutoring
+    participant DB as MySQL Database
+    participant Gemini as Gemini AI API
+    participant ExtractFunc as extract_products_from_response()
+    participant LinkGen as generate_product_links()
 
-    Note over System,Parent: Triggered by learning style update or poor performance
+    Parent->>UI: Navigate to Tutoring page
+    UI->>Flask: GET /dashboard/tutoring
+    Flask->>DB: SELECT * FROM children WHERE id={child_id}
+    DB-->>Flask: child data
+    Flask->>DB: SELECT * FROM ai_results WHERE module IN ('learning', 'preschool')
+    DB-->>Flask: learning_result, preschool_result
+    Flask->>DB: SELECT * FROM ai_results WHERE module='tutoring'
+    DB-->>Flask: cached tutoring result
 
-    System->>Service: triggerRecommendations(studentId, trigger)
-    Service->>Aggregator: collectStudentData(studentId)
-    Aggregator->>DB: fetchLearningStyle(studentId)
-    DB-->>Aggregator: learning style profile
-    Aggregator->>DB: fetchAcademicProgress(studentId)
-    DB-->>Aggregator: progress records
-    Aggregator->>DB: fetchPerformanceData(studentId)
-    DB-->>Aggregator: performance assessments
-    Aggregator->>DB: fetchBehaviorData(studentId)
-    DB-->>Aggregator: behavior records
-    Aggregator-->>Service: {learningStyle, progress, performance, behavior}
+    alt No Learning or Preschool Data
+        Flask-->>UI: Render with "No AI analysis data available" message
+        UI-->>Parent: Show message to run assessments first
+    else Has Data
+        Flask->>Flask: Create data_payload JSON {learning, preschool}
+        Flask->>Flask: Compare cached data with current payload
 
-    Service->>AI: analyzeStudentNeeds(allData)
-    AI->>AI: identifyWeakAreas()
-    AI->>AI: identifyStrengths()
-    AI->>AI: assessLearningGaps()
-    AI->>AI: considerLearningStyle()
-    AI-->>Service: {weakAreas, strengths, gaps, priorities}
+        alt Cached and Same Data
+            Flask->>DB: SELECT * FROM product_recommendations WHERE child_id={child_id}
+            DB-->>Flask: products list
+            Flask-->>UI: Render with cached recommendations + products
+            UI-->>Parent: Display cached tutoring recommendations
+        else Data Changed or Regen=1
+            Flask->>Flask: Build AI prompt with child profile
+            Flask->>Flask: Add preschool analysis to prompt (for context)
+            Flask->>Flask: Add learning style analysis to prompt (for context)
+            Flask->>Flask: Define 4 output sections (weak areas, focus areas, activities, products)
+            Flask->>Flask: Specify product format: [PRODUCT_START]...[PRODUCT_END]
 
-    Service->>AI: generateRecommendations(needs, learningStyle)
+            Flask->>Gemini: generate_content(prompt)
+            Gemini->>Gemini: Analyze learning style + preschool data
+            Gemini->>Gemini: Identify potential weak areas
+            Gemini->>Gemini: Recommend focus areas for tutoring
+            Gemini->>Gemini: Suggest personalized activities
+            Gemini->>Gemini: Generate 3-5 product recommendations
+            Gemini->>Gemini: Format products with tags [PRODUCT_START]...[PRODUCT_END]
+            Gemini->>Gemini: Format as HTML
+            Gemini-->>Flask: Return full HTML response with product tags
 
-    par Activity Recommendations
-        AI->>AI: matchActivitiesToStyle()
-        AI->>AI: alignWithWeakAreas()
-        AI->>AI: ensureEngagement()
-        AI->>DB: fetchActivityLibrary(filters)
-        DB-->>AI: matching activities
-        AI->>AI: rankActivities()
-    and Resource Recommendations
-        AI->>AI: matchResourcesToStyle()
-        AI->>AI: selectAppropriateLevel()
-        AI->>DB: fetchResourceLibrary(filters)
-        DB-->>AI: matching resources
-        AI->>AI: rankResources()
-    and Strategy Recommendations
-        AI->>AI: matchStrategiesToStyle()
-        AI->>AI: considerHomeContext()
-        AI->>AI: ensurePracticality()
-        AI->>AI: rankStrategies()
+            Flask->>ExtractFunc: extract_products_from_response(response, child_id, cursor)
+            ExtractFunc->>ExtractFunc: Regex match [PRODUCT_START]...[PRODUCT_END]
+            ExtractFunc->>ExtractFunc: Parse product fields (name, type, category, subject, etc.)
+
+            loop For each product
+                ExtractFunc->>LinkGen: generate_product_links(keywords, type)
+                LinkGen->>LinkGen: Build Amazon search URL
+                LinkGen->>LinkGen: Build Shopee search URL
+                LinkGen->>LinkGen: Build Lazada search URL
+                LinkGen-->>ExtractFunc: {amazon_url, shopee_url, lazada_url}
+
+                ExtractFunc->>ExtractFunc: Calculate price_range (budget/mid_range/premium)
+                ExtractFunc->>DB: INSERT INTO product_recommendations
+                DB-->>ExtractFunc: Success
+            end
+
+            ExtractFunc->>ExtractFunc: Remove product tags from HTML
+            ExtractFunc-->>Flask: {cleaned_html, products}
+
+            alt Cached Result Exists
+                Flask->>DB: UPDATE ai_results SET data, result, updated_at
+                DB-->>Flask: Updated
+            else No Cached Result
+                Flask->>DB: INSERT INTO ai_results (child_id, module='tutoring', data, result)
+                DB-->>Flask: Inserted
+            end
+
+            Flask->>DB: Commit transaction
+            Flask->>DB: SELECT * FROM product_recommendations WHERE child_id={child_id} LIMIT 10
+            DB-->>Flask: products list
+            Flask-->>UI: Return JSON {tutoring_summary, last_generated, products}
+            UI->>UI: Update page with new recommendations
+            UI-->>Parent: Display recommendations with product cards + shopping links
+        end
     end
 
-    AI-->>Service: {activities, resources, strategies, reasoning}
-
-    Service->>AI: createTutoringPlan(recommendations, studentProfile)
-    AI->>AI: organizePriorities()
-    AI->>AI: sequenceActivities()
-    AI->>AI: defineGoals()
-    AI->>AI: estimateDuration()
-    AI->>AI: createMilestones()
-    AI-->>Service: personalizedTutoringPlan
-
-    Service->>DB: saveTutoringPlan(studentId, plan)
-    DB-->>Service: planId
-
-    Service->>Notification: notifyAdmin(adminId, plan)
-    Notification->>Email: sendAdminNotification(admin, planSummary)
-    Email-->>Admin: New tutoring plan notification
-
-    Service->>Notification: notifyParent(parentId, plan)
-    Notification->>Email: sendParentNotification(parent, planSummary)
-    Email-->>Parent: New tutoring recommendations
-
-    Service-->>System: recommendations generated
-
-    Note over Admin,Parent: Admin Reviews and Implements
-
-    Admin->>UI: View recommendations
-    UI->>Controller: GET /tutoring/{planId}
-    Controller->>Service: getTutoringPlan(planId)
-    Service->>DB: fetchPlan(planId)
-    DB-->>Service: plan details
-    Service-->>Controller: plan
-    Controller-->>UI: 200 OK {plan}
-    UI-->>Admin: Display detailed plan
-
-    Admin->>UI: Mark activity as implemented
-    UI->>Controller: POST /tutoring/{planId}/implement {activityId, status}
-    Controller->>Service: updateImplementation(planId, activityId, status)
-    Service->>DB: updateActivityStatus(planId, activityId, status)
-    DB-->>Service: updated
-    Service->>DB: trackProgress(planId)
-    Service-->>Controller: updated plan
-    Controller-->>UI: 200 OK
-    UI-->>Admin: Status updated
-
-    Admin->>UI: Add implementation feedback
-    UI->>Controller: POST /tutoring/{planId}/feedback {activityId, feedback}
-    Controller->>Service: recordFeedback(planId, activityId, feedback)
-    Service->>DB: insertFeedback(feedback)
-    Service->>AI: analyzeFeedback(feedback)
-    AI->>AI: assessEffectiveness()
-    AI-->>Service: adjustedRecommendations
-    Service->>DB: updatePlan(planId, adjustments)
-    Service-->>Controller: updated
-    Controller-->>UI: 200 OK
-    UI-->>Admin: Feedback recorded
-
-    Note over System,Parent: Periodic Review
-
-    System->>Service: scheduledReview(planId)
-    Service->>DB: fetchPlanProgress(planId)
-    DB-->>Service: implementation data
-    Service->>AI: evaluatePlanEffectiveness(progress, studentData)
-    AI->>AI: measureImprovement()
-    AI->>AI: assessEngagement()
-    AI-->>Service: {effectiveness, recommendations}
-
-    alt Plan effective
-        Service->>Notification: sendSuccessReport(parent, admin)
-        Notification-->>Parent: Progress update
-        Notification-->>Admin: Effectiveness report
-    else Plan needs adjustment
-        Service->>AI: adjustPlan(currentPlan, effectiveness)
-        AI-->>Service: revisedPlan
-        Service->>DB: updatePlan(planId, revisedPlan)
-        Service->>Notification: sendPlanUpdate(parent, admin)
-        Notification-->>Parent: Updated recommendations
-        Notification-->>Admin: Plan revision notice
+    alt Error - Token Limit
+        Gemini-->>Flask: Token limit error
+        Flask-->>UI: Return {error: "token_limit"}
+        UI-->>Parent: Show token limit message
+    else Error - Other
+        Gemini-->>Flask: Other error
+        Flask-->>UI: Return error message
+        UI-->>Parent: Show error
     end
 ```
 
