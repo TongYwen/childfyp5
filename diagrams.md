@@ -4,131 +4,245 @@
 
 ### 4.1.1 User Authentication Module
 ```mermaid
-graph TD
-    Parent((Parent))
-    Admin((Admin))
+graph TB
+    subgraph Actors
+        Parent((Parent))
+        Admin((Admin))
+    end
 
-    Parent --> Login[Login]
-    Parent --> Logout[Logout]
-    Parent --> ResetPassword[Reset Password]
+    subgraph "User Authentication System"
+        Login[Login]
+        Logout[Logout]
+        ResetPassword[Reset Password]
+        ValidateCredentials[Validate Credentials]
+        SendEmail[Send Reset Email]
+        UpdatePassword[Update Password]
+        CheckAccountStatus[Check Account Status]
+    end
 
+    Parent --> Login
+    Parent --> Logout
+    Parent --> ResetPassword
     Admin --> Login
     Admin --> Logout
     Admin --> ManageUsers[Manage User Accounts]
 
-    Login --> ValidateCredentials[Validate Credentials]
-    ResetPassword --> SendEmail[Send Reset Email]
-    ResetPassword --> UpdatePassword[Update Password]
+    Login -.<<include>>.-> ValidateCredentials
+    Login -.<<include>>.-> CheckAccountStatus
+    ResetPassword -.<<include>>.-> SendEmail
+    ResetPassword -.<<include>>.-> UpdatePassword
 ```
 
-### 4.1.2 User Account Management Module
+### 4.1.2 User Account Management Module (includes Inactive Parent Detection)
 ```mermaid
-graph TD
-    Parent((Parent))
-    Admin((Admin))
+graph TB
+    subgraph Actors
+        Parent((Parent))
+        Admin((Admin))
+    end
 
-    Parent --> ViewProfile[View Profile]
-    Parent --> EditProfile[Edit Profile]
-    Parent --> LinkChild[Link Child Account]
+    subgraph "User Account Management System"
+        ViewProfile[View Profile]
+        EditProfile[Edit Profile]
+        LinkChild[Link Child Account]
+        CreateAccount[Create User Account]
+        DeleteAccount[Delete User Account]
+        UpdateAccount[Update User Account]
+        ViewAllUsers[View All Users]
+        UpdateInfo[Update Personal Information]
+        ChangePassword[Change Password]
+        DetectInactive[Detect Inactive Parents]
+        SendReminder[Send Activity Reminder]
+        GenerateReport[Generate Inactivity Report]
+    end
 
-    Admin --> CreateAccount[Create User Account]
-    Admin --> DeleteAccount[Delete User Account]
-    Admin --> UpdateAccount[Update User Account]
-    Admin --> ViewAllUsers[View All Users]
+    Parent --> ViewProfile
+    Parent --> EditProfile
+    Parent --> LinkChild
+
+    Admin --> CreateAccount
+    Admin --> DeleteAccount
+    Admin --> UpdateAccount
+    Admin --> ViewAllUsers
     Admin --> ViewProfile
     Admin --> EditProfile
+    Admin --> DetectInactive
 
-    EditProfile --> UpdateInfo[Update Personal Information]
-    EditProfile --> ChangePassword[Change Password]
+    EditProfile -.<<include>>.-> UpdateInfo
+    EditProfile -.<<extend>>.-> ChangePassword
+    DetectInactive -.<<include>>.-> GenerateReport
+    DetectInactive -.<<extend>>.-> SendReminder
+    ViewAllUsers -.<<extend>>.-> DetectInactive
 ```
 
 ### 4.1.3 Academic Progress Tracker Module
 ```mermaid
-graph TD
-    Parent((Parent))
-    Admin((Admin))
+graph TB
+    subgraph Actors
+        Parent((Parent))
+        Admin((Admin))
+    end
 
-    Parent --> ViewProgress[View Child Progress]
-    Parent --> ViewReports[View Progress Reports]
-    Parent --> ExportData[Export Progress Data]
+    subgraph "Academic Progress Tracker System"
+        ViewProgress[View Child Progress]
+        ViewReports[View Progress Reports]
+        ExportData[Export Progress Data]
+        RecordProgress[Record Student Progress]
+        GenerateReports[Generate Progress Reports]
+        ViewAnalytics[View Analytics]
+        EnterGrades[Enter Grades]
+        AddComments[Add Comments]
+        TrackMilestones[Track Milestones]
+        NotifyParent[Notify Parent]
+        CalculateTrends[Calculate Trends]
+    end
 
-    Admin --> RecordProgress[Record Student Progress]
+    Parent --> ViewProgress
+    Parent --> ViewReports
+    Parent --> ExportData
+
+    Admin --> RecordProgress
     Admin --> ViewProgress
-    Admin --> GenerateReports[Generate Progress Reports]
-    Admin --> ViewAnalytics[View Analytics]
+    Admin --> GenerateReports
+    Admin --> ViewAnalytics
 
-    RecordProgress --> EnterGrades[Enter Grades]
-    RecordProgress --> AddComments[Add Comments]
-    RecordProgress --> TrackMilestones[Track Milestones]
+    RecordProgress -.<<include>>.-> EnterGrades
+    RecordProgress -.<<extend>>.-> AddComments
+    RecordProgress -.<<extend>>.-> TrackMilestones
+    RecordProgress -.<<extend>>.-> NotifyParent
+    ViewProgress -.<<include>>.-> CalculateTrends
+    GenerateReports -.<<include>>.-> ViewAnalytics
 ```
 
 ### 4.1.4 Preschool Performance Tracker Module
 ```mermaid
-graph TD
-    Parent((Parent))
-    Admin((Admin))
+graph TB
+    subgraph Actors
+        Parent((Parent))
+        Admin((Admin))
+    end
 
-    Parent --> ViewPerformance[View Performance Metrics]
-    Parent --> ViewBehavior[View Behavior Records]
-    Parent --> ViewAttendance[View Attendance]
+    subgraph "Preschool Performance Tracker System"
+        ViewPerformance[View Performance Metrics]
+        ViewBehavior[View Behavior Records]
+        ViewAttendance[View Attendance]
+        RecordPerformance[Record Performance]
+        RecordBehavior[Record Behavior]
+        RecordAttendance[Record Attendance]
+        GenerateReport[Generate Performance Report]
+        AssessSocial[Assess Social Skills]
+        AssessMotor[Assess Motor Skills]
+        AssessCognitive[Assess Cognitive Skills]
+        IdentifyConcerns[Identify Concerns]
+        SendAlert[Send Alert to Parent]
+    end
 
-    Admin --> RecordPerformance[Record Performance]
-    Admin --> RecordBehavior[Record Behavior]
-    Admin --> RecordAttendance[Record Attendance]
+    Parent --> ViewPerformance
+    Parent --> ViewBehavior
+    Parent --> ViewAttendance
+
+    Admin --> RecordPerformance
+    Admin --> RecordBehavior
+    Admin --> RecordAttendance
     Admin --> ViewPerformance
-    Admin --> GenerateReport[Generate Performance Report]
+    Admin --> GenerateReport
 
-    RecordPerformance --> AssessSocial[Assess Social Skills]
-    RecordPerformance --> AssessMotor[Assess Motor Skills]
-    RecordPerformance --> AssessCognitive[Assess Cognitive Skills]
+    RecordPerformance -.<<include>>.-> AssessSocial
+    RecordPerformance -.<<include>>.-> AssessMotor
+    RecordPerformance -.<<include>>.-> AssessCognitive
+    RecordPerformance -.<<extend>>.-> IdentifyConcerns
+    IdentifyConcerns -.<<include>>.-> SendAlert
+    GenerateReport -.<<include>>.-> ViewPerformance
 ```
 
 ### 4.1.5 Learning Style Analyzer Module
 ```mermaid
-graph TD
-    Parent((Parent))
-    Admin((Admin))
-    System((System))
+graph TB
+    subgraph Actors
+        Parent((Parent))
+        Admin((Admin))
+        System((System))
+    end
 
-    Parent --> ViewLearningStyle[View Learning Style]
-    Parent --> RequestAssessment[Request Assessment]
+    subgraph "Learning Style Analyzer System"
+        ViewLearningStyle[View Learning Style]
+        RequestAssessment[Request Assessment]
+        ConductAssessment[Conduct Learning Assessment]
+        UpdateAssessment[Update Assessment]
+        InputObservations[Input Observations]
+        CompleteQuestionnaire[Complete Questionnaire]
+        AnalyzeData[Analyze Learning Data]
+        GenerateProfile[Generate Learning Profile]
+        IdentifyVisual[Identify Visual Learner]
+        IdentifyAuditory[Identify Auditory Learner]
+        IdentifyKinesthetic[Identify Kinesthetic Learner]
+        RecommendStrategies[Recommend Teaching Strategies]
+    end
 
-    Admin --> ConductAssessment[Conduct Learning Assessment]
+    Parent --> ViewLearningStyle
+    Parent --> RequestAssessment
+
+    Admin --> ConductAssessment
     Admin --> ViewLearningStyle
-    Admin --> UpdateAssessment[Update Assessment]
+    Admin --> UpdateAssessment
 
-    ConductAssessment --> InputObservations[Input Observations]
-    ConductAssessment --> CompleteQuestionnaire[Complete Questionnaire]
+    System --> AnalyzeData
+    System --> GenerateProfile
 
-    System --> AnalyzeData[Analyze Learning Data]
-    System --> GenerateProfile[Generate Learning Profile]
-    AnalyzeData --> IdentifyVisual[Identify Visual Learner]
-    AnalyzeData --> IdentifyAuditory[Identify Auditory Learner]
-    AnalyzeData --> IdentifyKinesthetic[Identify Kinesthetic Learner]
+    ConductAssessment -.<<include>>.-> InputObservations
+    ConductAssessment -.<<include>>.-> CompleteQuestionnaire
+    AnalyzeData -.<<include>>.-> IdentifyVisual
+    AnalyzeData -.<<include>>.-> IdentifyAuditory
+    AnalyzeData -.<<include>>.-> IdentifyKinesthetic
+    GenerateProfile -.<<include>>.-> AnalyzeData
+    GenerateProfile -.<<extend>>.-> RecommendStrategies
 ```
 
 ### 4.1.6 Tutoring Recommendations Module
 ```mermaid
-graph TD
-    Parent((Parent))
-    Admin((Admin))
-    System((System))
+graph TB
+    subgraph Actors
+        Parent((Parent))
+        Admin((Admin))
+        System((System))
+    end
 
-    Parent --> ViewRecommendations[View Tutoring Recommendations]
-    Parent --> RequestTutoring[Request Tutoring]
-    Parent --> ProvideFeedback[Provide Feedback]
+    subgraph "Tutoring Recommendations System"
+        ViewRecommendations[View Tutoring Recommendations]
+        RequestTutoring[Request Tutoring]
+        ProvideFeedback[Provide Feedback]
+        ImplementRecommendations[Implement Recommendations]
+        UpdateProgress[Update Implementation Progress]
+        GenerateRecommendations[Generate Recommendations]
+        AnalyzePerformance[Analyze Performance Data]
+        MatchLearningStyle[Match Learning Style]
+        SuggestActivities[Suggest Activities]
+        SuggestResources[Suggest Resources]
+        SuggestStrategies[Suggest Strategies]
+        CreatePlan[Create Personalized Plan]
+        TrackEffectiveness[Track Effectiveness]
+    end
+
+    Parent --> ViewRecommendations
+    Parent --> RequestTutoring
+    Parent --> ProvideFeedback
 
     Admin --> ViewRecommendations
-    Admin --> ImplementRecommendations[Implement Recommendations]
-    Admin --> UpdateProgress[Update Implementation Progress]
+    Admin --> ImplementRecommendations
+    Admin --> UpdateProgress
 
-    System --> GenerateRecommendations[Generate Recommendations]
-    System --> AnalyzePerformance[Analyze Performance Data]
-    System --> MatchLearningStyle[Match Learning Style]
+    System --> GenerateRecommendations
+    System --> AnalyzePerformance
+    System --> MatchLearningStyle
 
-    GenerateRecommendations --> SuggestActivities[Suggest Activities]
-    GenerateRecommendations --> SuggestResources[Suggest Resources]
-    GenerateRecommendations --> SuggestStrategies[Suggest Strategies]
+    GenerateRecommendations -.<<include>>.-> AnalyzePerformance
+    GenerateRecommendations -.<<include>>.-> MatchLearningStyle
+    GenerateRecommendations -.<<include>>.-> SuggestActivities
+    GenerateRecommendations -.<<include>>.-> SuggestResources
+    GenerateRecommendations -.<<include>>.-> SuggestStrategies
+    GenerateRecommendations -.<<include>>.-> CreatePlan
+    ImplementRecommendations -.<<extend>>.-> TrackEffectiveness
+    UpdateProgress -.<<extend>>.-> ProvideFeedback
 ```
 
 ---
@@ -159,13 +273,14 @@ flowchart TD
     RedirectDashboard --> End3([End])
 ```
 
-### 4.2.2 User Account Management Module
+### 4.2.2 User Account Management Module (includes Inactive Parent Detection)
 ```mermaid
 flowchart TD
     Start([Start]) --> SelectAction{Select Action}
     SelectAction -->|Create Account| EnterDetails[Enter User Details]
     SelectAction -->|Edit Profile| LoadProfile[Load User Profile]
     SelectAction -->|Delete Account| ConfirmDelete{Confirm Deletion?}
+    SelectAction -->|Check Inactive Parents| StartDetection[Start Inactivity Detection]
 
     EnterDetails --> ValidateDetails{Validate Details}
     ValidateDetails -->|Invalid| ShowValidationError[Show Validation Error]
@@ -183,7 +298,8 @@ flowchart TD
     ValidateChanges -->|Invalid| ShowError2[Show Error]
     ShowError2 --> EditFields
     ValidateChanges -->|Valid| SaveChanges[Save Changes to Database]
-    SaveChanges --> Success2[Show Success Message]
+    SaveChanges --> UpdateTimestamp[Update Last Activity Timestamp]
+    UpdateTimestamp --> Success2[Show Success Message]
     Success2 --> End2([End])
 
     ConfirmDelete -->|No| End3([End])
@@ -196,6 +312,18 @@ flowchart TD
     DeleteUser --> NotifyUser[Send Deletion Notification]
     NotifyUser --> Success3[Show Success Message]
     Success3 --> End5([End])
+
+    StartDetection --> QueryDatabase[Query Parent Login History]
+    QueryDatabase --> CheckLastLogin{Last Login > 30 Days?}
+    CheckLastLogin -->|No| CheckNext{More Parents?}
+    CheckLastLogin -->|Yes| FlagInactive[Flag as Inactive Parent]
+    FlagInactive --> SendReminder[Send Activity Reminder Email]
+    SendReminder --> LogInactivity[Log Inactivity Record]
+    LogInactivity --> CheckNext
+    CheckNext -->|Yes| QueryDatabase
+    CheckNext -->|No| GenerateReport[Generate Inactivity Report]
+    GenerateReport --> DisplayReport[Display Report to Admin]
+    DisplayReport --> End6([End])
 ```
 
 ### 4.2.3 Academic Progress Tracker Module
@@ -212,8 +340,11 @@ flowchart TD
     ShowError1 --> EnterGrade
     ValidateData -->|Valid| SaveProgress[Save Progress Data]
     SaveProgress --> UpdateAnalytics[Update Analytics]
-    UpdateAnalytics --> NotifyParent1[Notify Parent]
-    NotifyParent1 --> End1([End])
+    UpdateAnalytics --> CalculateTrends[Calculate Performance Trends]
+    CalculateTrends --> CheckSignificant{Significant Change?}
+    CheckSignificant -->|Yes| NotifyParent1[Notify Parent]
+    CheckSignificant -->|No| End1([End])
+    NotifyParent1 --> End1
 
     SelectAction -->|View Progress| LoadProgressData[Load Progress Data]
     LoadProgressData --> GenerateCharts[Generate Progress Charts]
@@ -271,10 +402,12 @@ flowchart TD
     SaveBehavior[Save Behavior Record] --> UpdateProfile
 
     UpdateProfile[Update Performance Profile] --> GenerateInsights[Generate Insights]
-    GenerateInsights --> CheckConcerns{Identify Concerns?}
+    GenerateInsights --> CompareMilestones[Compare to Developmental Milestones]
+    CompareMilestones --> CheckConcerns{Identify Concerns?}
     CheckConcerns -->|Yes| FlagConcerns[Flag for Review]
     FlagConcerns --> NotifyParent[Notify Parent and Admin]
-    NotifyParent --> End1([End])
+    NotifyParent --> CreateActionPlan[Create Action Plan]
+    CreateActionPlan --> End1([End])
     CheckConcerns -->|No| NotifyParentUpdate[Send Update to Parent]
     NotifyParentUpdate --> End2([End])
 ```
@@ -344,7 +477,8 @@ flowchart TD
     CollectData[Collect All Relevant Data] --> AnalyzeProgress[Analyze Academic Progress]
     AnalyzeProgress --> AnalyzePerformance[Analyze Performance Metrics]
     AnalyzePerformance --> IdentifyWeaknesses[Identify Weak Areas]
-    IdentifyWeaknesses --> MatchLearningStyle[Match to Learning Style]
+    IdentifyWeaknesses --> IdentifyStrengths[Identify Strengths]
+    IdentifyStrengths --> MatchLearningStyle[Match to Learning Style]
 
     MatchLearningStyle --> GenerateActivities[Generate Activity Recommendations]
     GenerateActivities --> GenerateResources[Generate Resource Recommendations]
@@ -428,7 +562,7 @@ sequenceDiagram
     end
 ```
 
-### 4.3.2 User Account Management Module
+### 4.3.2 User Account Management Module (includes Inactive Parent Detection)
 ```mermaid
 sequenceDiagram
     actor Admin
@@ -438,6 +572,9 @@ sequenceDiagram
     participant Validator as Data Validator
     participant DB as Database
     participant Email as Email Service
+    participant Scheduler as Task Scheduler
+
+    Note over Admin,Scheduler: Create User Account Flow
 
     Admin->>UI: Click "Create New User"
     UI->>Admin: Display user form
@@ -464,6 +601,7 @@ sequenceDiagram
             Service->>DB: insertUser(userData)
             DB-->>Service: userId
             Service->>DB: assignRole(userId, role)
+            Service->>DB: setLastActivityTimestamp(userId, now)
             Service->>Email: sendWelcomeEmail(user)
             Email-->>Service: email sent
             Service-->>Controller: {userId, userData}
@@ -472,7 +610,7 @@ sequenceDiagram
         end
     end
 
-    Note over Admin,Email: Edit Profile Flow
+    Note over Admin,Scheduler: Edit Profile Flow
 
     Admin->>UI: Edit user profile
     UI->>Controller: GET /users/{userId}
@@ -487,10 +625,34 @@ sequenceDiagram
     UI->>Controller: PUT /users/{userId} {updates}
     Controller->>Service: updateUser(userId, updates)
     Service->>DB: updateUserData(userId, updates)
+    Service->>DB: updateLastActivityTimestamp(userId, now)
     DB-->>Service: updated user
     Service-->>Controller: updated user
     Controller-->>UI: 200 OK {user}
     UI-->>Admin: Success message
+
+    Note over Admin,Scheduler: Inactive Parent Detection Flow
+
+    Scheduler->>Service: scheduledInactivityCheck()
+    Service->>DB: getParentsWithLastActivity()
+    DB-->>Service: parent activity records
+
+    loop For each parent
+        Service->>Service: calculateInactiveDays(lastActivity)
+
+        alt Inactive > 30 days
+            Service->>DB: flagAsInactive(parentId)
+            Service->>DB: createInactivityRecord(parentId, days)
+            Service->>Email: sendActivityReminderEmail(parent)
+            Email-->>Service: email sent
+            Service->>DB: logReminderSent(parentId, timestamp)
+        end
+    end
+
+    Service->>DB: generateInactivityReport()
+    DB-->>Service: report data
+    Service->>Email: sendReportToAdmin(admin, report)
+    Email-->>Admin: Inactivity report email
 ```
 
 ### 4.3.3 Academic Progress Tracker Module
@@ -721,7 +883,7 @@ sequenceDiagram
     Service->>DB: fetchAllAssessmentData(sessionId)
     DB-->>Service: {observations, questionnaire, activities}
 
-    Service->>Analyzer: analyzeLearningSt‌yle(assessmentData)
+    Service->>Analyzer: analyzeLearningStyle(assessmentData)
     Analyzer->>Analyzer: scoreVisualIndicators()
     Analyzer->>Analyzer: scoreAuditoryIndicators()
     Analyzer->>Analyzer: scoreKinestheticIndicators()
@@ -820,7 +982,7 @@ sequenceDiagram
 
     Service->>AI: createTutoringPlan(recommendations, studentProfile)
     AI->>AI: organizePriorities()
-    AI->>AI: sequencedActivities()
+    AI->>AI: sequenceActivities()
     AI->>AI: defineGoals()
     AI->>AI: estimateDuration()
     AI->>AI: createMilestones()
@@ -902,14 +1064,24 @@ sequenceDiagram
 
 These diagrams represent:
 
-1. **Use Case Diagrams**: Show the interactions between different actors (Parent, Admin, System) and the system functionalities
+1. **Use Case Diagrams**: Show the interactions between different actors (Parent, Admin, System) and the system functionalities with proper <<include>> and <<extend>> relationships
+   - **<<include>>**: Mandatory relationships that must execute (e.g., Login includes Validate Credentials)
+   - **<<extend>>**: Optional relationships that may execute under certain conditions (e.g., Edit Profile extends to Change Password)
+
 2. **Activity Diagrams**: Detail the workflow and decision points for each module's processes
+
 3. **Sequence Diagrams**: Illustrate the interaction between different components (UI, Controllers, Services, Database) over time
 
 ### System Roles
 - **Parent**: Can view their child's progress, performance, learning styles, and recommendations
-- **Admin**: Manages all system operations including recording progress, conducting assessments, and managing user accounts
+- **Admin**: Manages all system operations including recording progress, conducting assessments, and managing user accounts (including inactive parent detection)
 - **System**: Automated processes for analyzing data and generating recommendations
+
+### Key Features
+- No Teacher actors in any diagram
+- User Account Management module includes Inactive Parent Detection functionality
+- All use case diagrams use <<include>> for mandatory and <<extend>> for optional relationships
+- Activity and Sequence diagrams remain detailed and comprehensive
 
 You can render these Mermaid diagrams using:
 - GitHub Markdown (supports Mermaid natively)
