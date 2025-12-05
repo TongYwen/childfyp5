@@ -30,6 +30,7 @@ graph TD
 graph TD
     Parent((Parent))
     Admin((Admin))
+    System((System))
 
     Parent --> ViewProfile[View Profile]
     Parent --> EditProfile[Edit Profile]
@@ -41,6 +42,9 @@ graph TD
     Admin --> ViewAllUsers[View All Users]
     Admin --> ViewProfile
     Admin --> EditProfile
+    Admin --> ReviewInactiveAccounts[Review Inactive Accounts]
+
+    System --> DetectInactiveParents[Detect Inactive Parents]
 
     EditProfile -->|<<include>>| ValidateInput[Validate Input]
     EditProfile -->|<<include>>| SaveChanges[Save Changes]
@@ -55,6 +59,16 @@ graph TD
     DeleteAccount -->|<<extend>>| ArchiveData[Archive User Data]
 
     LinkChild -->|<<include>>| VerifyRelationship[Verify Relationship]
+
+    DetectInactiveParents -->|<<include>>| CheckLastLogin[Check Last Login Date]
+    DetectInactiveParents -->|<<include>>| CheckActivityLog[Check Activity Log]
+    DetectInactiveParents -->|<<extend>>| SendReminderEmail[Send Reminder Email]
+    DetectInactiveParents -->|<<extend>>| FlagAccount[Flag Account as Inactive]
+    DetectInactiveParents -->|<<extend>>| NotifyAdmin[Notify Admin]
+
+    ReviewInactiveAccounts -->|<<include>>| ViewInactiveList[View Inactive Parent List]
+    ReviewInactiveAccounts -->|<<extend>>| ReactivateAccount[Reactivate Account]
+    ReviewInactiveAccounts -->|<<extend>>| DeactivateAccount[Deactivate Account]
 ```
 
 ### 4.1.3 Academic Progress Tracker Module
@@ -242,6 +256,7 @@ flowchart TD
     SelectAction -->|Create Account| EnterDetails[Enter User Details]
     SelectAction -->|Edit Profile| LoadProfile[Load User Profile]
     SelectAction -->|Delete Account| ConfirmDelete{Confirm Deletion?}
+    SelectAction -->|Detect Inactive Parents| StartDetection
 
     EnterDetails --> ValidateDetails{Validate Details}
     ValidateDetails -->|Invalid| ShowValidationError[Show Validation Error]
@@ -272,6 +287,34 @@ flowchart TD
     DeleteUser --> NotifyUser[Send Deletion Notification]
     NotifyUser --> Success3[Show Success Message]
     Success3 --> End5([End])
+
+    StartDetection[Start Inactive Parent Detection] --> FetchAllParents[Fetch All Parent Accounts]
+    FetchAllParents --> CalculateInactivePeriod[Calculate Inactivity Threshold]
+    CalculateInactivePeriod --> CheckEachParent[Check Each Parent Account]
+    CheckEachParent --> GetLastLogin[Get Last Login Date]
+    GetLastLogin --> GetActivityLog[Get Recent Activity Log]
+    GetActivityLog --> CalculateDaysSinceLogin[Calculate Days Since Last Login]
+    CalculateDaysSinceLogin --> IsInactive{Inactive > 30 days?}
+
+    IsInactive -->|No| NextParent{More Parents?}
+    IsInactive -->|Yes| CheckSeverity{Inactive > 90 days?}
+
+    CheckSeverity -->|No| SendReminder[Send Reminder Email to Parent]
+    SendReminder --> FlagAsInactive[Flag Account as Inactive]
+    FlagAsInactive --> LogInactivity[Log Inactivity Event]
+    LogInactivity --> NextParent
+
+    CheckSeverity -->|Yes| SendUrgentReminder[Send Urgent Reminder Email]
+    SendUrgentReminder --> NotifyAdmin[Notify Admin for Review]
+    NotifyAdmin --> FlagAsCritical[Flag Account as Critically Inactive]
+    FlagAsCritical --> LogCriticalInactivity[Log Critical Inactivity]
+    LogCriticalInactivity --> NextParent
+
+    NextParent -->|Yes| CheckEachParent
+    NextParent -->|No| GenerateReport[Generate Inactivity Report]
+    GenerateReport --> SaveReport[Save Report to Database]
+    SaveReport --> NotifyAdminSummary[Notify Admin with Summary]
+    NotifyAdminSummary --> End6([End])
 ```
 
 ### 4.2.3 Academic Progress Tracker Module
@@ -514,6 +557,8 @@ sequenceDiagram
     participant Validator as Data Validator
     participant DB as Database
     participant Email as Email Service
+    participant Scheduler as System Scheduler
+    actor Parent
 
     Admin->>UI: Click "Create New User"
     UI->>Admin: Display user form
@@ -567,6 +612,67 @@ sequenceDiagram
     Service-->>Controller: updated user
     Controller-->>UI: 200 OK {user}
     UI-->>Admin: Success message
+
+    Note over Scheduler,Parent: Inactive Parent Detection Flow (Scheduled Daily)
+
+    Scheduler->>Service: triggerInactiveParentDetection()
+    Service->>DB: fetchAllParentAccounts()
+    DB-->>Service: parent accounts list
+
+    loop For each parent account
+        Service->>DB: getLastLoginDate(parentId)
+        DB-->>Service: lastLoginDate
+        Service->>DB: getActivityLog(parentId, last30Days)
+        DB-->>Service: activityLog
+        Service->>Service: calculateDaysSinceLogin(lastLoginDate)
+        Service->>Service: analyzeActivityPattern(activityLog)
+
+        alt Inactive 30-89 days
+            Service->>DB: flagAccountAsInactive(parentId)
+            DB-->>Service: flagged
+            Service->>Email: sendReminderEmail(parent)
+            Email-->>Parent: Reminder to login and check progress
+            Service->>DB: logInactivityEvent(parentId, "moderate")
+        else Inactive 90+ days
+            Service->>DB: flagAccountAsCriticallyInactive(parentId)
+            DB-->>Service: flagged
+            Service->>Email: sendUrgentReminderEmail(parent)
+            Email-->>Parent: Urgent reminder - Account at risk
+            Service->>Email: notifyAdmin(admin, parentId)
+            Email-->>Admin: Parent critically inactive notification
+            Service->>DB: logInactivityEvent(parentId, "critical")
+        else Active (< 30 days)
+            Service->>DB: updateActivityStatus(parentId, "active")
+        end
+    end
+
+    Service->>Service: aggregateInactivityData()
+    Service->>DB: saveInactivityReport(reportData)
+    DB-->>Service: reportId
+    Service->>Email: sendInactivitySummary(admin, reportData)
+    Email-->>Admin: Weekly inactivity summary report
+
+    Note over Admin,Parent: Admin Reviews Inactive Parents
+
+    Admin->>UI: View inactive parent accounts
+    UI->>Controller: GET /users/inactive
+    Controller->>Service: getInactiveParents()
+    Service->>DB: fetchInactiveParents()
+    DB-->>Service: inactive parent list
+    Service-->>Controller: inactiveParents
+    Controller-->>UI: 200 OK {inactiveParents}
+    UI-->>Admin: Display inactive parent list
+
+    Admin->>UI: Select parent to reactivate/deactivate
+    UI->>Controller: POST /users/{parentId}/status {action}
+    Controller->>Service: updateAccountStatus(parentId, action)
+    Service->>DB: updateStatus(parentId, status)
+    DB-->>Service: updated
+    Service->>Email: notifyParent(parent, action)
+    Email-->>Parent: Account status notification
+    Service-->>Controller: success
+    Controller-->>UI: 200 OK
+    UI-->>Admin: Status updated confirmation
 ```
 
 ### 4.3.3 Academic Progress Tracker Module
