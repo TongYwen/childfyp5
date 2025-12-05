@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <h2>User Management</h2>
     <p class="text-muted">View all registered parents and admins.</p>
-    
+
     <form class="row g-2 mb-3" method="get" action="{{ url_for('admin_users') }}">
         <div class="col-sm-4">
             <input
@@ -28,11 +28,61 @@
     <table class="table table-hover mt-3">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Created At</th>
+                <th>
+                    <a href="{{ url_for('admin_users', q=search, sort='id', order='asc' if sort_by == 'id' and order == 'desc' else 'desc') }}"
+                       class="text-decoration-none text-dark">
+                        ID
+                        {% if sort_by == 'id' %}
+                            <i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>
+                        {% else %}
+                            <i class="fas fa-sort text-muted opacity-25"></i>
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ url_for('admin_users', q=search, sort='name', order='asc' if sort_by == 'name' and order == 'desc' else 'desc') }}"
+                       class="text-decoration-none text-dark">
+                        Name
+                        {% if sort_by == 'name' %}
+                            <i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>
+                        {% else %}
+                            <i class="fas fa-sort text-muted opacity-25"></i>
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ url_for('admin_users', q=search, sort='email', order='asc' if sort_by == 'email' and order == 'desc' else 'desc') }}"
+                       class="text-decoration-none text-dark">
+                        Email
+                        {% if sort_by == 'email' %}
+                            <i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>
+                        {% else %}
+                            <i class="fas fa-sort text-muted opacity-25"></i>
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ url_for('admin_users', q=search, sort='role', order='asc' if sort_by == 'role' and order == 'desc' else 'desc') }}"
+                       class="text-decoration-none text-dark">
+                        Role
+                        {% if sort_by == 'role' %}
+                            <i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>
+                        {% else %}
+                            <i class="fas fa-sort text-muted opacity-25"></i>
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ url_for('admin_users', q=search, sort='created_at', order='asc' if sort_by == 'created_at' and order == 'desc' else 'desc') }}"
+                       class="text-decoration-none text-dark">
+                        Created At
+                        {% if sort_by == 'created_at' %}
+                            <i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>
+                        {% else %}
+                            <i class="fas fa-sort text-muted opacity-25"></i>
+                        {% endif %}
+                    </a>
+                </th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -62,4 +112,20 @@
         </tbody>
     </table>
 </div>
+
+<style>
+    thead th a {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    thead th a:hover {
+        color: #0d6efd !important;
+    }
+
+    thead th i {
+        font-size: 0.8em;
+        margin-left: 4px;
+    }
+</style>
 {% endblock %}

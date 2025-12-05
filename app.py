@@ -3644,29 +3644,43 @@ def admin_dashboard():
 @roles_required("admin")
 def admin_users():
     search = request.args.get("q", "").strip()
+    sort_by = request.args.get("sort", "created_at")
+    order = request.args.get("order", "desc")
+
+    # Whitelist allowed columns to prevent SQL injection
+    allowed_columns = ["id", "name", "email", "role", "created_at"]
+    if sort_by not in allowed_columns:
+        sort_by = "created_at"
+
+    # Validate order direction
+    if order not in ["asc", "desc"]:
+        order = "desc"
 
     conn = get_db_conn()
     cursor = conn.cursor(dictionary=True)
 
+    # Build ORDER BY clause
+    order_clause = f"ORDER BY {sort_by} {order.upper()}"
+
     if search:
         like = f"%{search}%"
         cursor.execute(
-            """
+            f"""
             SELECT id, name, email, role, created_at
             FROM users
             WHERE name LIKE %s
                OR email LIKE %s
                OR CAST(id AS CHAR) LIKE %s
-            ORDER BY created_at DESC
+            {order_clause}
             """,
             (like, like, like),
         )
     else:
         cursor.execute(
-            """
+            f"""
             SELECT id, name, email, role, created_at
             FROM users
-            ORDER BY created_at DESC
+            {order_clause}
             """
         )
 
@@ -3674,7 +3688,7 @@ def admin_users():
     cursor.close()
     conn.close()
 
-    return render_template("admin/users.html", users=users, search=search)
+    return render_template("admin/users.html", users=users, search=search, sort_by=sort_by, order=order)
 
 
 @app.route("/admin/users/<int:user_id>/edit", methods=["GET", "POST"])
