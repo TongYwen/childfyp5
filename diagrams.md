@@ -6,16 +6,11 @@
 ```mermaid
 graph TD
     Parent((Parent))
-    Teacher((Teacher))
     Admin((Admin))
 
     Parent --> Login[Login]
     Parent --> Logout[Logout]
     Parent --> ResetPassword[Reset Password]
-
-    Teacher --> Login
-    Teacher --> Logout
-    Teacher --> ResetPassword
 
     Admin --> Login
     Admin --> Logout
@@ -30,21 +25,18 @@ graph TD
 ```mermaid
 graph TD
     Parent((Parent))
-    Teacher((Teacher))
     Admin((Admin))
 
     Parent --> ViewProfile[View Profile]
     Parent --> EditProfile[Edit Profile]
     Parent --> LinkChild[Link Child Account]
 
-    Teacher --> ViewProfile
-    Teacher --> EditProfile
-    Teacher --> ManageClass[Manage Class]
-
     Admin --> CreateAccount[Create User Account]
     Admin --> DeleteAccount[Delete User Account]
     Admin --> UpdateAccount[Update User Account]
     Admin --> ViewAllUsers[View All Users]
+    Admin --> ViewProfile
+    Admin --> EditProfile
 
     EditProfile --> UpdateInfo[Update Personal Information]
     EditProfile --> ChangePassword[Change Password]
@@ -54,16 +46,16 @@ graph TD
 ```mermaid
 graph TD
     Parent((Parent))
-    Teacher((Teacher))
+    Admin((Admin))
 
     Parent --> ViewProgress[View Child Progress]
     Parent --> ViewReports[View Progress Reports]
     Parent --> ExportData[Export Progress Data]
 
-    Teacher --> RecordProgress[Record Student Progress]
-    Teacher --> ViewProgress
-    Teacher --> GenerateReports[Generate Progress Reports]
-    Teacher --> ViewAnalytics[View Class Analytics]
+    Admin --> RecordProgress[Record Student Progress]
+    Admin --> ViewProgress
+    Admin --> GenerateReports[Generate Progress Reports]
+    Admin --> ViewAnalytics[View Analytics]
 
     RecordProgress --> EnterGrades[Enter Grades]
     RecordProgress --> AddComments[Add Comments]
@@ -74,17 +66,17 @@ graph TD
 ```mermaid
 graph TD
     Parent((Parent))
-    Teacher((Teacher))
+    Admin((Admin))
 
     Parent --> ViewPerformance[View Performance Metrics]
     Parent --> ViewBehavior[View Behavior Records]
     Parent --> ViewAttendance[View Attendance]
 
-    Teacher --> RecordPerformance[Record Performance]
-    Teacher --> RecordBehavior[Record Behavior]
-    Teacher --> RecordAttendance[Record Attendance]
-    Teacher --> ViewPerformance
-    Teacher --> GenerateReport[Generate Performance Report]
+    Admin --> RecordPerformance[Record Performance]
+    Admin --> RecordBehavior[Record Behavior]
+    Admin --> RecordAttendance[Record Attendance]
+    Admin --> ViewPerformance
+    Admin --> GenerateReport[Generate Performance Report]
 
     RecordPerformance --> AssessSocial[Assess Social Skills]
     RecordPerformance --> AssessMotor[Assess Motor Skills]
@@ -95,15 +87,15 @@ graph TD
 ```mermaid
 graph TD
     Parent((Parent))
-    Teacher((Teacher))
+    Admin((Admin))
     System((System))
 
     Parent --> ViewLearningStyle[View Learning Style]
     Parent --> RequestAssessment[Request Assessment]
 
-    Teacher --> ConductAssessment[Conduct Learning Assessment]
-    Teacher --> ViewLearningStyle
-    Teacher --> UpdateAssessment[Update Assessment]
+    Admin --> ConductAssessment[Conduct Learning Assessment]
+    Admin --> ViewLearningStyle
+    Admin --> UpdateAssessment[Update Assessment]
 
     ConductAssessment --> InputObservations[Input Observations]
     ConductAssessment --> CompleteQuestionnaire[Complete Questionnaire]
@@ -119,16 +111,16 @@ graph TD
 ```mermaid
 graph TD
     Parent((Parent))
-    Teacher((Teacher))
+    Admin((Admin))
     System((System))
 
     Parent --> ViewRecommendations[View Tutoring Recommendations]
     Parent --> RequestTutoring[Request Tutoring]
     Parent --> ProvideFeedback[Provide Feedback]
 
-    Teacher --> ViewRecommendations
-    Teacher --> ImplementRecommendations[Implement Recommendations]
-    Teacher --> UpdateProgress[Update Implementation Progress]
+    Admin --> ViewRecommendations
+    Admin --> ImplementRecommendations[Implement Recommendations]
+    Admin --> UpdateProgress[Update Implementation Progress]
 
     System --> GenerateRecommendations[Generate Recommendations]
     System --> AnalyzePerformance[Analyze Performance Data]
@@ -214,7 +206,7 @@ flowchart TD
 
     SelectAction -->|Record Progress| SelectSubject[Select Subject/Skill]
     SelectSubject --> EnterGrade[Enter Grade/Score]
-    EnterGrade --> AddComments[Add Teacher Comments]
+    EnterGrade --> AddComments[Add Comments]
     AddComments --> ValidateData{Validate Data}
     ValidateData -->|Invalid| ShowError1[Show Error]
     ShowError1 --> EnterGrade
@@ -360,18 +352,18 @@ flowchart TD
 
     GenerateStrategies --> PrioritizeRecommendations[Prioritize by Impact]
     PrioritizeRecommendations --> CreatePlan[Create Personalized Tutoring Plan]
-    CreatePlan --> ReviewPlan{Teacher Review Required?}
+    CreatePlan --> ReviewPlan{Admin Review Required?}
 
-    ReviewPlan -->|Yes| SendToTeacher[Send to Teacher for Review]
-    SendToTeacher --> TeacherApproval{Teacher Approves?}
-    TeacherApproval -->|No| AdjustRecommendations[Teacher Adjusts Recommendations]
+    ReviewPlan -->|Yes| SendToAdmin[Send to Admin for Review]
+    SendToAdmin --> AdminApproval{Admin Approves?}
+    AdminApproval -->|No| AdjustRecommendations[Admin Adjusts Recommendations]
     AdjustRecommendations --> CreatePlan
-    TeacherApproval -->|Yes| PublishPlan
+    AdminApproval -->|Yes| PublishPlan
 
     ReviewPlan -->|No| PublishPlan[Publish Recommendations]
     PublishPlan --> NotifyParent[Notify Parent]
-    NotifyParent --> NotifyTeacher[Notify Teacher]
-    NotifyTeacher --> DisplayRecommendations[Display in Dashboard]
+    NotifyParent --> NotifyAdmin[Notify Admin]
+    NotifyAdmin --> DisplayRecommendations[Display in Dashboard]
     DisplayRecommendations --> TrackImplementation[Track Implementation]
     TrackImplementation --> ScheduleFollowUp[Schedule Follow-up Review]
     ScheduleFollowUp --> End([End])
@@ -504,8 +496,8 @@ sequenceDiagram
 ### 4.3.3 Academic Progress Tracker Module
 ```mermaid
 sequenceDiagram
-    actor Teacher
-    participant UI as Teacher UI
+    actor Admin
+    participant UI as Admin UI
     participant Controller as Progress Controller
     participant Service as Progress Service
     participant Analytics as Analytics Engine
@@ -513,16 +505,16 @@ sequenceDiagram
     participant Notification as Notification Service
     actor Parent
 
-    Teacher->>UI: Select student and subject
+    Admin->>UI: Select student and subject
     UI->>Controller: GET /students/{studentId}/progress
     Controller->>Service: getStudentProgress(studentId)
     Service->>DB: fetchProgressRecords(studentId)
     DB-->>Service: progress records
     Service-->>Controller: progress data
     Controller-->>UI: 200 OK {progressData}
-    UI-->>Teacher: Display current progress
+    UI-->>Admin: Display current progress
 
-    Teacher->>UI: Enter new grade and comments
+    Admin->>UI: Enter new grade and comments
     UI->>Controller: POST /progress {studentId, subjectId, grade, comments}
     Controller->>Service: recordProgress(progressData)
     Service->>Service: validateGrade(grade)
@@ -530,7 +522,7 @@ sequenceDiagram
     alt Invalid grade
         Service-->>Controller: ValidationError
         Controller-->>UI: 400 Bad Request
-        UI-->>Teacher: Show error
+        UI-->>Admin: Show error
     else Valid grade
         Service->>DB: insertProgressRecord(progressData)
         DB-->>Service: recordId
@@ -555,12 +547,12 @@ sequenceDiagram
 
         Service-->>Controller: {recordId, analytics}
         Controller-->>UI: 201 Created {progressRecord}
-        UI-->>Teacher: Success with insights
+        UI-->>Admin: Success with insights
     end
 
-    Note over Teacher,Parent: Generate Report Flow
+    Note over Admin,Parent: Generate Report Flow
 
-    Teacher->>UI: Request progress report
+    Admin->>UI: Request progress report
     UI->>Controller: POST /progress/reports {studentId, period}
     Controller->>Service: generateProgressReport(studentId, period)
     Service->>DB: fetchProgressData(studentId, period)
@@ -573,48 +565,48 @@ sequenceDiagram
     Service->>DB: saveReport(reportId, reportData)
     Service-->>Controller: {reportId, reportURL}
     Controller-->>UI: 200 OK {report}
-    UI-->>Teacher: Display/Download report
+    UI-->>Admin: Display/Download report
 
-    Teacher->>UI: Send report to parent
+    Admin->>UI: Send report to parent
     UI->>Controller: POST /reports/{reportId}/send
     Controller->>Notification: sendReport(parentId, reportId)
     Notification->>Email: emailReport(parent, reportURL)
     Email-->>Parent: Report email
     Notification-->>Controller: sent
     Controller-->>UI: 200 OK
-    UI-->>Teacher: Confirmation
+    UI-->>Admin: Confirmation
 ```
 
 ### 4.3.4 Preschool Performance Tracker Module
 ```mermaid
 sequenceDiagram
-    actor Teacher
-    participant UI as Teacher UI
+    actor Admin
+    participant UI as Admin UI
     participant Controller as Performance Controller
     participant Service as Performance Service
     participant Assessment as Assessment Engine
     participant DB as Database
     participant Alert as Alert Service
+    participant Notification as Notification Service
     actor Parent
-    actor Admin
 
-    Teacher->>UI: Select student for assessment
+    Admin->>UI: Select student for assessment
     UI->>Controller: GET /students/{studentId}/performance
     Controller->>Service: getPerformanceProfile(studentId)
     Service->>DB: fetchPerformanceData(studentId)
     DB-->>Service: performance history
     Service-->>Controller: performanceData
     Controller-->>UI: 200 OK {performanceData}
-    UI-->>Teacher: Display performance dashboard
+    UI-->>Admin: Display performance dashboard
 
-    Teacher->>UI: Record new assessment
-    UI->>Teacher: Show assessment form
-    Teacher->>UI: Select category (Social/Motor/Cognitive)
+    Admin->>UI: Record new assessment
+    UI->>Admin: Show assessment form
+    Admin->>UI: Select category (Social/Motor/Cognitive)
 
-    Note over Teacher,Admin: Social Skills Assessment
+    Note over Admin,Parent: Social Skills Assessment
 
-    Teacher->>UI: Rate social behaviors
-    Teacher->>UI: Add observations
+    Admin->>UI: Rate social behaviors
+    Admin->>UI: Add observations
     UI->>Controller: POST /performance/social {studentId, ratings, observations}
     Controller->>Service: recordSocialAssessment(data)
     Service->>Assessment: evaluateSocialSkills(ratings)
@@ -635,12 +627,12 @@ sequenceDiagram
     Service->>DB: insertSocialAssessment(studentId, score, observations)
     DB-->>Service: assessmentId
 
-    Note over Teacher,Admin: Motor Skills Assessment
+    Note over Admin,Parent: Motor Skills Assessment
 
     Service->>DB: updatePerformanceProfile(studentId)
 
-    Teacher->>UI: Rate fine motor skills
-    Teacher->>UI: Rate gross motor skills
+    Admin->>UI: Rate fine motor skills
+    Admin->>UI: Rate gross motor skills
     UI->>Controller: POST /performance/motor {studentId, fineMotor, grossMotor, observations}
     Controller->>Service: recordMotorAssessment(data)
     Service->>Assessment: evaluateMotorSkills(data)
@@ -650,9 +642,9 @@ sequenceDiagram
     Assessment-->>Service: {scores, insights, recommendations}
     Service->>DB: insertMotorAssessment(data)
 
-    Note over Teacher,Admin: Cognitive Skills Assessment
+    Note over Admin,Parent: Cognitive Skills Assessment
 
-    Teacher->>UI: Complete cognitive assessment
+    Admin->>UI: Complete cognitive assessment
     UI->>Controller: POST /performance/cognitive {studentId, assessmentData}
     Controller->>Service: recordCognitiveAssessment(data)
     Service->>Assessment: evaluateCognitive(data)
@@ -669,7 +661,7 @@ sequenceDiagram
     Service->>DB: updatePerformanceProfile(studentId, profile)
     Service-->>Controller: {profileId, summary}
     Controller-->>UI: 201 Created {assessment}
-    UI-->>Teacher: Success with summary
+    UI-->>Admin: Success with summary
 
     Service->>Notification: sendPerformanceUpdate(parentId, summary)
     Notification->>Email: emailPerformanceUpdate(parent)
@@ -679,16 +671,17 @@ sequenceDiagram
 ### 4.3.5 Learning Style Analyzer Module
 ```mermaid
 sequenceDiagram
-    actor Teacher
-    participant UI as Teacher UI
+    actor Admin
+    participant UI as Admin UI
     participant Controller as Learning Style Controller
     participant Service as Learning Style Service
     participant Analyzer as Learning Analyzer AI
     participant DB as Database
     participant Recommendation as Recommendation Service
+    participant Notification as Notification Service
     actor Parent
 
-    Teacher->>UI: Initiate learning style assessment
+    Admin->>UI: Initiate learning style assessment
     UI->>Controller: POST /learning-style/assess {studentId}
     Controller->>Service: startAssessment(studentId)
     Service->>DB: checkExistingAssessment(studentId)
@@ -697,32 +690,32 @@ sequenceDiagram
     alt Has recent assessment
         Service-->>Controller: {existingAssessment, status: "recent"}
         Controller-->>UI: 200 OK {assessment}
-        UI-->>Teacher: Show existing with update option
+        UI-->>Admin: Show existing with update option
     else No recent assessment
         Service->>DB: createAssessmentSession(studentId)
         DB-->>Service: sessionId
         Service-->>Controller: {sessionId, questions}
         Controller-->>UI: 200 OK {assessmentSession}
-        UI-->>Teacher: Display assessment form
+        UI-->>Admin: Display assessment form
     end
 
-    Teacher->>UI: Complete observation checklist
-    Teacher->>UI: Rate visual learning indicators
-    Teacher->>UI: Rate auditory learning indicators
-    Teacher->>UI: Rate kinesthetic learning indicators
-    Teacher->>UI: Add behavioral observations
+    Admin->>UI: Complete observation checklist
+    Admin->>UI: Rate visual learning indicators
+    Admin->>UI: Rate auditory learning indicators
+    Admin->>UI: Rate kinesthetic learning indicators
+    Admin->>UI: Add behavioral observations
     UI->>Controller: POST /learning-style/session/{sessionId}/observations {observations}
     Controller->>Service: saveObservations(sessionId, observations)
     Service->>DB: insertObservations(sessionId, observations)
     DB-->>Service: saved
 
-    Teacher->>UI: Complete learning questionnaire
+    Admin->>UI: Complete learning questionnaire
     UI->>Controller: POST /learning-style/session/{sessionId}/questionnaire {responses}
     Controller->>Service: saveQuestionnaire(sessionId, responses)
     Service->>DB: insertQuestionnaire(sessionId, responses)
     DB-->>Service: saved
 
-    Teacher->>UI: Submit assessment
+    Admin->>UI: Submit assessment
     UI->>Controller: POST /learning-style/session/{sessionId}/complete
     Controller->>Service: completeAssessment(sessionId)
     Service->>DB: fetchAllAssessmentData(sessionId)
@@ -751,9 +744,9 @@ sequenceDiagram
 
     Service-->>Controller: {profileId, learningStyle, recommendations}
     Controller-->>UI: 201 Created {learningProfile}
-    UI-->>Teacher: Display learning profile
+    UI-->>Admin: Display learning profile
 
-    Teacher->>UI: Share with parent
+    Admin->>UI: Share with parent
     UI->>Controller: POST /learning-style/{profileId}/share
     Controller->>Service: shareWithParent(profileId, studentId)
     Service->>DB: getParentContact(studentId)
@@ -763,7 +756,7 @@ sequenceDiagram
     Email-->>Parent: Learning style profile
     Service-->>Controller: shared
     Controller-->>UI: 200 OK
-    UI-->>Teacher: Confirmation
+    UI-->>Admin: Confirmation
 ```
 
 ### 4.3.6 Tutoring Recommendations Module
@@ -775,7 +768,9 @@ sequenceDiagram
     participant AI as Recommendation AI
     participant DB as Database
     participant Notification as Notification Service
-    actor Teacher
+    participant UI as Admin UI
+    participant Controller as Tutoring Controller
+    actor Admin
     actor Parent
 
     Note over System,Parent: Triggered by learning style update or poor performance
@@ -816,7 +811,7 @@ sequenceDiagram
         AI->>AI: rankResources()
     and Strategy Recommendations
         AI->>AI: matchStrategiesToStyle()
-        AI->>AI: considerClassroomContext()
+        AI->>AI: considerHomeContext()
         AI->>AI: ensurePracticality()
         AI->>AI: rankStrategies()
     end
@@ -834,9 +829,9 @@ sequenceDiagram
     Service->>DB: saveTutoringPlan(studentId, plan)
     DB-->>Service: planId
 
-    Service->>Notification: notifyTeacher(teacherId, plan)
-    Notification->>Email: sendTeacherNotification(teacher, planSummary)
-    Email-->>Teacher: New tutoring plan notification
+    Service->>Notification: notifyAdmin(adminId, plan)
+    Notification->>Email: sendAdminNotification(admin, planSummary)
+    Email-->>Admin: New tutoring plan notification
 
     Service->>Notification: notifyParent(parentId, plan)
     Notification->>Email: sendParentNotification(parent, planSummary)
@@ -844,18 +839,18 @@ sequenceDiagram
 
     Service-->>System: recommendations generated
 
-    Note over Teacher,Parent: Teacher Reviews and Implements
+    Note over Admin,Parent: Admin Reviews and Implements
 
-    Teacher->>UI: View recommendations
+    Admin->>UI: View recommendations
     UI->>Controller: GET /tutoring/{planId}
     Controller->>Service: getTutoringPlan(planId)
     Service->>DB: fetchPlan(planId)
     DB-->>Service: plan details
     Service-->>Controller: plan
     Controller-->>UI: 200 OK {plan}
-    UI-->>Teacher: Display detailed plan
+    UI-->>Admin: Display detailed plan
 
-    Teacher->>UI: Mark activity as implemented
+    Admin->>UI: Mark activity as implemented
     UI->>Controller: POST /tutoring/{planId}/implement {activityId, status}
     Controller->>Service: updateImplementation(planId, activityId, status)
     Service->>DB: updateActivityStatus(planId, activityId, status)
@@ -863,9 +858,9 @@ sequenceDiagram
     Service->>DB: trackProgress(planId)
     Service-->>Controller: updated plan
     Controller-->>UI: 200 OK
-    UI-->>Teacher: Status updated
+    UI-->>Admin: Status updated
 
-    Teacher->>UI: Add implementation feedback
+    Admin->>UI: Add implementation feedback
     UI->>Controller: POST /tutoring/{planId}/feedback {activityId, feedback}
     Controller->>Service: recordFeedback(planId, activityId, feedback)
     Service->>DB: insertFeedback(feedback)
@@ -875,7 +870,7 @@ sequenceDiagram
     Service->>DB: updatePlan(planId, adjustments)
     Service-->>Controller: updated
     Controller-->>UI: 200 OK
-    UI-->>Teacher: Feedback recorded
+    UI-->>Admin: Feedback recorded
 
     Note over System,Parent: Periodic Review
 
@@ -888,16 +883,16 @@ sequenceDiagram
     AI-->>Service: {effectiveness, recommendations}
 
     alt Plan effective
-        Service->>Notification: sendSuccessReport(parent, teacher)
+        Service->>Notification: sendSuccessReport(parent, admin)
         Notification-->>Parent: Progress update
-        Notification-->>Teacher: Effectiveness report
+        Notification-->>Admin: Effectiveness report
     else Plan needs adjustment
         Service->>AI: adjustPlan(currentPlan, effectiveness)
         AI-->>Service: revisedPlan
         Service->>DB: updatePlan(planId, revisedPlan)
-        Service->>Notification: sendPlanUpdate(parent, teacher)
+        Service->>Notification: sendPlanUpdate(parent, admin)
         Notification-->>Parent: Updated recommendations
-        Notification-->>Teacher: Plan revision notice
+        Notification-->>Admin: Plan revision notice
     end
 ```
 
@@ -907,9 +902,14 @@ sequenceDiagram
 
 These diagrams represent:
 
-1. **Use Case Diagrams**: Show the interactions between different actors (Parent, Teacher, Admin, System) and the system functionalities
+1. **Use Case Diagrams**: Show the interactions between different actors (Parent, Admin, System) and the system functionalities
 2. **Activity Diagrams**: Detail the workflow and decision points for each module's processes
 3. **Sequence Diagrams**: Illustrate the interaction between different components (UI, Controllers, Services, Database) over time
+
+### System Roles
+- **Parent**: Can view their child's progress, performance, learning styles, and recommendations
+- **Admin**: Manages all system operations including recording progress, conducting assessments, and managing user accounts
+- **System**: Automated processes for analyzing data and generating recommendations
 
 You can render these Mermaid diagrams using:
 - GitHub Markdown (supports Mermaid natively)
