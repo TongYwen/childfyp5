@@ -160,42 +160,43 @@ graph TB
 graph TB
     subgraph Actors
         Parent((Parent))
-        Admin((Admin))
-        System((System))
+        System((System/Gemini AI))
     end
 
     subgraph "Learning Style Analyzer System"
-        ViewLearningStyle[View Learning Style]
-        RequestAssessment[Request Assessment]
-        ConductAssessment[Conduct Learning Assessment]
-        UpdateAssessment[Update Assessment]
-        InputObservations[Input Observations]
-        CompleteQuestionnaire[Complete Questionnaire]
-        AnalyzeData[Analyze Learning Data]
-        GenerateProfile[Generate Learning Profile]
-        IdentifyVisual[Identify Visual Learner]
-        IdentifyAuditory[Identify Auditory Learner]
-        IdentifyKinesthetic[Identify Kinesthetic Learner]
-        RecommendStrategies[Recommend Teaching Strategies]
+        AddObservation[Add Observation]
+        ViewQuestionnaires[View Questionnaires]
+        SubmitAnswers[Submit Questionnaire Answers]
+        ViewAnalysis[View Learning Style Analysis]
+        GenerateAnalysis[Generate/Regenerate Analysis]
+        CheckCached[Check Cached Results]
+        AnalyzeVARK[Analyze VARK Data]
+        GroupByCategory[Group Answers by Category]
+        CalculateRatings[Calculate Style Ratings]
+        IdentifyMainStyle[Identify Main Learning Style]
+        GenerateTips[Generate Parent Tips]
+        CacheResults[Cache Analysis Results]
+        FormatHTML[Format HTML Output]
     end
 
-    Parent --> ViewLearningStyle
-    Parent --> RequestAssessment
+    Parent --> AddObservation
+    Parent --> ViewQuestionnaires
+    Parent --> SubmitAnswers
+    Parent --> ViewAnalysis
+    Parent --> GenerateAnalysis
 
-    Admin --> ConductAssessment
-    Admin --> ViewLearningStyle
-    Admin --> UpdateAssessment
+    System --> AnalyzeVARK
+    System --> CacheResults
 
-    System --> AnalyzeData
-    System --> GenerateProfile
-
-    ConductAssessment -.<<include>>.-> InputObservations
-    ConductAssessment -.<<include>>.-> CompleteQuestionnaire
-    AnalyzeData -.<<include>>.-> IdentifyVisual
-    AnalyzeData -.<<include>>.-> IdentifyAuditory
-    AnalyzeData -.<<include>>.-> IdentifyKinesthetic
-    GenerateProfile -.<<include>>.-> AnalyzeData
-    GenerateProfile -.<<extend>>.-> RecommendStrategies
+    GenerateAnalysis -.<<include>>.-> CheckCached
+    GenerateAnalysis -.<<include>>.-> AnalyzeVARK
+    AnalyzeVARK -.<<include>>.-> GroupByCategory
+    AnalyzeVARK -.<<include>>.-> CalculateRatings
+    AnalyzeVARK -.<<include>>.-> IdentifyMainStyle
+    AnalyzeVARK -.<<include>>.-> GenerateTips
+    AnalyzeVARK -.<<include>>.-> FormatHTML
+    AnalyzeVARK -.<<include>>.-> CacheResults
+    SubmitAnswers -.<<extend>>.-> GenerateAnalysis
 ```
 
 ### 4.1.6 Tutoring Recommendations Module
@@ -415,50 +416,52 @@ flowchart TD
 ### 4.2.5 Learning Style Analyzer Module
 ```mermaid
 flowchart TD
-    Start([Start]) --> SelectStudent[Select Student]
-    SelectStudent --> CheckExisting{Existing Assessment?}
+    Start([Start]) --> LoadPage[Parent Navigates to Learning Style Page]
+    LoadPage --> LoadData[Load Observations, Questionnaires, and Cached Analysis]
+    LoadData --> SelectAction{Parent Selects Action}
 
-    CheckExisting -->|Yes| ViewExisting[View Existing Profile]
-    ViewExisting --> UpdateOrNew{Update or New?}
-    UpdateOrNew -->|View Only| DisplayProfile
-    UpdateOrNew -->|Update| StartAssessment
+    SelectAction -->|Add Observation| EnterObservation[Enter Observation Text]
+    EnterObservation --> SaveObservation[Save to learning_observations Table]
+    SaveObservation --> RedirectPage[Redirect to Learning Style Page]
+    RedirectPage --> LoadPage
 
-    CheckExisting -->|No| StartAssessment[Start New Assessment]
-    StartAssessment --> ConductObservation[Conduct Classroom Observation]
-    ConductObservation --> RecordVisual[Record Visual Learning Indicators]
-    RecordVisual --> RecordAuditory[Record Auditory Learning Indicators]
-    RecordAuditory --> RecordKinesthetic[Record Kinesthetic Learning Indicators]
-    RecordKinesthetic --> CompleteQuestionnaire[Complete Learning Questionnaire]
-    CompleteQuestionnaire --> ReviewActivities[Review Preferred Activities]
-    ReviewActivities --> ValidateData{Validate Data}
+    SelectAction -->|Take Questionnaire| ViewQuestions[View VARK Questionnaire Questions]
+    ViewQuestions --> AnswerQuestions[Parent Answers Questions Scale 1-5]
+    AnswerQuestions --> SubmitAnswers[Submit Questionnaire Answers]
+    SubmitAnswers --> SaveAnswers[Save to test_answers Table]
+    SaveAnswers --> RedirectPage
 
-    ValidateData -->|Incomplete| ShowError[Show Error - Complete All Sections]
-    ShowError --> ConductObservation
+    SelectAction -->|Generate Analysis| CheckDataExists{Has Observations or Answers?}
+    CheckDataExists -->|No| ShowNoData[Show 'No Data Available' Message]
+    ShowNoData --> End1([End])
 
-    ValidateData -->|Complete| AnalyzeResponses[Analyze All Responses]
-    AnalyzeResponses --> CalculateScores[Calculate Style Scores]
-    CalculateScores --> DetermineStyle{Determine Primary Style}
+    CheckDataExists -->|Yes| CreateDataPayload[Create JSON Data Payload]
+    CreateDataPayload --> CheckCached{Compare with Cached Data}
+    CheckCached -->|Cached & No Regen| DisplayCached[Display Cached Analysis]
+    DisplayCached --> End2([End])
 
-    DetermineStyle -->|Visual > 60%| AssignVisual[Assign Visual Learner]
-    DetermineStyle -->|Auditory > 60%| AssignAuditory[Assign Auditory Learner]
-    DetermineStyle -->|Kinesthetic > 60%| AssignKinesthetic[Assign Kinesthetic Learner]
-    DetermineStyle -->|Mixed| AssignMixed[Assign Mixed/Multimodal Learner]
+    CheckCached -->|Not Cached or Regen| PrepareObservations[Format Observations with Dates]
+    PrepareObservations --> GroupAnswers[Group Answers by VARK Category]
+    GroupAnswers --> BuildPrompt[Build AI Prompt]
+    BuildPrompt --> SendToGemini[Send to Gemini AI]
 
-    AssignVisual --> GenerateProfile
-    AssignAuditory --> GenerateProfile
-    AssignKinesthetic --> GenerateProfile
-    AssignMixed --> GenerateProfile
+    SendToGemini --> GeminiAnalyze[AI Analyzes VARK Data]
+    GeminiAnalyze --> GenerateRatings[Generate Visual/Auditory/Reading/Kinesthetic Ratings]
+    GenerateRatings --> IdentifyMainStyle[Identify Main Learning Style]
+    IdentifyMainStyle --> GenerateTips[Generate 3 Tips for Parents]
+    GenerateTips --> FormatHTML[Format as HTML]
 
-    GenerateProfile[Generate Learning Profile] --> AddRecommendations[Add Teaching Recommendations]
-    AddRecommendations --> SaveProfile[Save Profile to Database]
-    SaveProfile --> DisplayProfile[Display Learning Profile]
-    DisplayProfile --> ShareWithParent{Share with Parent?}
+    FormatHTML --> DeleteOldResult[Delete Old ai_results Entry]
+    DeleteOldResult --> InsertNewResult[Insert New ai_results Entry]
+    InsertNewResult --> CommitDB[Commit to Database]
+    CommitDB --> DisplayAnalysis[Display Learning Style Analysis]
+    DisplayAnalysis --> End3([End])
 
-    ShareWithParent -->|Yes| SendToParent[Send Profile to Parent]
-    SendToParent --> TriggerRecommendations[Trigger Tutoring Recommendations]
-    TriggerRecommendations --> End1([End])
-
-    ShareWithParent -->|No| End2([End])
+    SendToGemini -->|Error| HandleError{Check Error Type}
+    HandleError -->|Token Limit| ReturnTokenError[Return Token Limit Error]
+    ReturnTokenError --> End4([End])
+    HandleError -->|Other Error| ShowError[Show Error Message]
+    ShowError --> End5([End])
 ```
 
 ### 4.2.6 Tutoring Recommendations Module
@@ -833,92 +836,104 @@ sequenceDiagram
 ### 4.3.5 Learning Style Analyzer Module
 ```mermaid
 sequenceDiagram
-    actor Admin
-    participant UI as Admin UI
-    participant Controller as Learning Style Controller
-    participant Service as Learning Style Service
-    participant Analyzer as Learning Analyzer AI
-    participant DB as Database
-    participant Recommendation as Recommendation Service
-    participant Notification as Notification Service
     actor Parent
+    participant UI as Parent UI
+    participant Flask as Flask App /dashboard/learning
+    participant DB as MySQL Database
+    participant Gemini as Gemini AI API
 
-    Admin->>UI: Initiate learning style assessment
-    UI->>Controller: POST /learning-style/assess {studentId}
-    Controller->>Service: startAssessment(studentId)
-    Service->>DB: checkExistingAssessment(studentId)
-    DB-->>Service: existing assessment or null
+    Note over Parent,Gemini: Flow 1: Add Observation
 
-    alt Has recent assessment
-        Service-->>Controller: {existingAssessment, status: "recent"}
-        Controller-->>UI: 200 OK {assessment}
-        UI-->>Admin: Show existing with update option
-    else No recent assessment
-        Service->>DB: createAssessmentSession(studentId)
-        DB-->>Service: sessionId
-        Service-->>Controller: {sessionId, questions}
-        Controller-->>UI: 200 OK {assessmentSession}
-        UI-->>Admin: Display assessment form
+    Parent->>UI: Navigate to Learning Style page
+    UI->>Flask: GET /dashboard/learning
+    Flask->>DB: SELECT * FROM children WHERE id={child_id}
+    DB-->>Flask: child data
+    Flask->>DB: SELECT * FROM tests
+    DB-->>Flask: questionnaires list
+    Flask->>DB: SELECT * FROM learning_observations WHERE child_id={child_id}
+    DB-->>Flask: observations
+    Flask->>DB: SELECT * FROM test_answers WHERE child_id={child_id}
+    DB-->>Flask: test answers
+    Flask->>DB: SELECT * FROM ai_results WHERE child_id={child_id} AND module='learning'
+    DB-->>Flask: cached analysis
+    Flask-->>UI: Render page with data
+    UI-->>Parent: Display learning style page
+
+    Parent->>UI: Enter observation text
+    Parent->>UI: Submit observation
+    UI->>Flask: POST /dashboard/learning {observation}
+    Flask->>DB: INSERT INTO learning_observations (child_id, observation, created_at)
+    DB-->>Flask: Success
+    Flask-->>UI: Redirect to learning page
+    UI-->>Parent: Show updated observations
+
+    Note over Parent,Gemini: Flow 2: Take Questionnaire
+
+    Parent->>UI: Select VARK questionnaire
+    UI->>Flask: GET questionnaire questions
+    Flask->>DB: SELECT * FROM test_questions WHERE test_id={test_id}
+    DB-->>Flask: questions list
+    Flask-->>UI: Display questionnaire
+    UI-->>Parent: Show questions
+
+    Parent->>UI: Answer questions (scale 1-5)
+    Parent->>UI: Submit questionnaire
+    UI->>Flask: POST questionnaire answers
+    Flask->>DB: INSERT INTO test_answers (child_id, test_id, question_id, answer)
+    DB-->>Flask: Success
+    Flask-->>UI: Redirect to learning page
+    UI-->>Parent: Show updated answers
+
+    Note over Parent,Gemini: Flow 3: Generate/Regenerate Analysis
+
+    Parent->>UI: Click "Generate/Regenerate Analysis"
+    UI->>Flask: GET /dashboard/learning?regen=1
+    Flask->>DB: SELECT * FROM learning_observations WHERE child_id={child_id}
+    DB-->>Flask: observations
+    Flask->>DB: SELECT * FROM test_answers WHERE child_id={child_id}
+    DB-->>Flask: test answers with questions
+    Flask->>Flask: Create JSON data_payload
+    Flask->>DB: SELECT * FROM ai_results WHERE child_id={child_id} AND module='learning'
+    DB-->>Flask: cached result
+
+    alt Data not changed and no regen
+        Flask-->>UI: Return cached analysis
+        UI-->>Parent: Display cached result
+    else Data changed or regen=1
+        Flask->>Flask: Format observations with dates
+        Flask->>Flask: Group answers by VARK category (visual, auditory, reading, kinesthetic)
+        Flask->>Flask: Build AI prompt with observations and grouped answers
+
+        Flask->>Gemini: generate_content(prompt)
+        Gemini->>Gemini: Analyze VARK questionnaire responses
+        Gemini->>Gemini: Analyze parent observations
+        Gemini->>Gemini: Calculate Visual rating
+        Gemini->>Gemini: Calculate Auditory rating
+        Gemini->>Gemini: Calculate Reading/Writing rating
+        Gemini->>Gemini: Calculate Kinesthetic rating
+        Gemini->>Gemini: Identify main learning style
+        Gemini->>Gemini: Generate 3 practical tips for parents
+        Gemini->>Gemini: Format as HTML
+        Gemini-->>Flask: Return HTML analysis
+
+        Flask->>DB: DELETE FROM ai_results WHERE child_id={child_id} AND module='learning'
+        DB-->>Flask: Deleted
+        Flask->>DB: INSERT INTO ai_results (child_id, module, data, result, created_at, updated_at)
+        DB-->>Flask: Success
+        Flask-->>UI: Return JSON {benchmark_summary, last_generated}
+        UI->>UI: Update page with new analysis
+        UI-->>Parent: Display VARK analysis with tips
     end
 
-    Admin->>UI: Complete observation checklist
-    Admin->>UI: Rate visual learning indicators
-    Admin->>UI: Rate auditory learning indicators
-    Admin->>UI: Rate kinesthetic learning indicators
-    Admin->>UI: Add behavioral observations
-    UI->>Controller: POST /learning-style/session/{sessionId}/observations {observations}
-    Controller->>Service: saveObservations(sessionId, observations)
-    Service->>DB: insertObservations(sessionId, observations)
-    DB-->>Service: saved
-
-    Admin->>UI: Complete learning questionnaire
-    UI->>Controller: POST /learning-style/session/{sessionId}/questionnaire {responses}
-    Controller->>Service: saveQuestionnaire(sessionId, responses)
-    Service->>DB: insertQuestionnaire(sessionId, responses)
-    DB-->>Service: saved
-
-    Admin->>UI: Submit assessment
-    UI->>Controller: POST /learning-style/session/{sessionId}/complete
-    Controller->>Service: completeAssessment(sessionId)
-    Service->>DB: fetchAllAssessmentData(sessionId)
-    DB-->>Service: {observations, questionnaire, activities}
-
-    Service->>Analyzer: analyzeLearningStyle(assessmentData)
-    Analyzer->>Analyzer: scoreVisualIndicators()
-    Analyzer->>Analyzer: scoreAuditoryIndicators()
-    Analyzer->>Analyzer: scoreKinestheticIndicators()
-    Analyzer->>Analyzer: calculateConfidenceLevels()
-    Analyzer->>Analyzer: identifyPrimaryStyle()
-    Analyzer->>Analyzer: identifySecondaryStyles()
-    Analyzer-->>Service: {primaryStyle, secondaryStyles, scores, confidence}
-
-    Service->>Analyzer: generateTeachingRecommendations(learningStyle)
-    Analyzer->>Analyzer: matchStrategies(primaryStyle)
-    Analyzer->>Analyzer: suggestActivities(learningStyle)
-    Analyzer->>Analyzer: recommendResources(learningStyle)
-    Analyzer-->>Service: recommendations
-
-    Service->>DB: saveLearningProfile(studentId, profile, recommendations)
-    DB-->>Service: profileId
-
-    Service->>Recommendation: triggerTutoringRecommendations(studentId, learningStyle)
-    Recommendation-->>Service: triggered
-
-    Service-->>Controller: {profileId, learningStyle, recommendations}
-    Controller-->>UI: 201 Created {learningProfile}
-    UI-->>Admin: Display learning profile
-
-    Admin->>UI: Share with parent
-    UI->>Controller: POST /learning-style/{profileId}/share
-    Controller->>Service: shareWithParent(profileId, studentId)
-    Service->>DB: getParentContact(studentId)
-    DB-->>Service: parent email
-    Service->>Notification: sendLearningProfile(parent, profile)
-    Notification->>Email: emailLearningProfile(parent)
-    Email-->>Parent: Learning style profile
-    Service-->>Controller: shared
-    Controller-->>UI: 200 OK
-    UI-->>Admin: Confirmation
+    alt Error - Token limit
+        Gemini-->>Flask: Token limit error
+        Flask-->>UI: Return {error: "token_limit"}
+        UI-->>Parent: Show token limit message
+    else Error - Other
+        Gemini-->>Flask: Other error
+        Flask-->>UI: Return error message
+        UI-->>Parent: Show error
+    end
 ```
 
 ### 4.3.6 Tutoring Recommendations Module
