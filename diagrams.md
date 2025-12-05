@@ -16,9 +16,13 @@ graph TD
     Admin --> Logout
     Admin --> ManageUsers[Manage User Accounts]
 
-    Login --> ValidateCredentials[Validate Credentials]
-    ResetPassword --> SendEmail[Send Reset Email]
-    ResetPassword --> UpdatePassword[Update Password]
+    Login -->|<<include>>| ValidateCredentials[Validate Credentials]
+    Login -->|<<extend>>| TwoFactorAuth[Two-Factor Authentication]
+
+    ResetPassword -->|<<include>>| SendEmail[Send Reset Email]
+    ResetPassword -->|<<include>>| UpdatePassword[Update Password]
+
+    Logout -->|<<include>>| InvalidateSession[Invalidate Session]
 ```
 
 ### 4.1.2 User Account Management Module
@@ -38,8 +42,19 @@ graph TD
     Admin --> ViewProfile
     Admin --> EditProfile
 
-    EditProfile --> UpdateInfo[Update Personal Information]
-    EditProfile --> ChangePassword[Change Password]
+    EditProfile -->|<<include>>| ValidateInput[Validate Input]
+    EditProfile -->|<<include>>| SaveChanges[Save Changes]
+    EditProfile -->|<<extend>>| UpdateInfo[Update Personal Information]
+    EditProfile -->|<<extend>>| ChangePassword[Change Password]
+
+    CreateAccount -->|<<include>>| ValidateInput
+    CreateAccount -->|<<include>>| AssignRole[Assign Role]
+    CreateAccount -->|<<extend>>| SendWelcomeEmail[Send Welcome Email]
+
+    DeleteAccount -->|<<include>>| ConfirmDeletion[Confirm Deletion]
+    DeleteAccount -->|<<extend>>| ArchiveData[Archive User Data]
+
+    LinkChild -->|<<include>>| VerifyRelationship[Verify Relationship]
 ```
 
 ### 4.1.3 Academic Progress Tracker Module
@@ -57,9 +72,22 @@ graph TD
     Admin --> GenerateReports[Generate Progress Reports]
     Admin --> ViewAnalytics[View Analytics]
 
-    RecordProgress --> EnterGrades[Enter Grades]
-    RecordProgress --> AddComments[Add Comments]
-    RecordProgress --> TrackMilestones[Track Milestones]
+    RecordProgress -->|<<include>>| ValidateData[Validate Data]
+    RecordProgress -->|<<include>>| SaveToDatabase[Save to Database]
+    RecordProgress -->|<<extend>>| EnterGrades[Enter Grades]
+    RecordProgress -->|<<extend>>| AddComments[Add Comments]
+    RecordProgress -->|<<extend>>| TrackMilestones[Track Milestones]
+    RecordProgress -->|<<extend>>| NotifyParent[Notify Parent]
+
+    ViewProgress -->|<<include>>| FetchData[Fetch Progress Data]
+    ViewProgress -->|<<extend>>| FilterBySubject[Filter by Subject]
+    ViewProgress -->|<<extend>>| CompareWithPeers[Compare with Peers]
+
+    GenerateReports -->|<<include>>| AnalyzeData[Analyze Data]
+    GenerateReports -->|<<include>>| CreateDocument[Create Document]
+    GenerateReports -->|<<extend>>| SendEmail[Send via Email]
+
+    ExportData -->|<<include>>| SelectFormat[Select Export Format]
 ```
 
 ### 4.1.4 Preschool Performance Tracker Module
@@ -78,9 +106,26 @@ graph TD
     Admin --> ViewPerformance
     Admin --> GenerateReport[Generate Performance Report]
 
-    RecordPerformance --> AssessSocial[Assess Social Skills]
-    RecordPerformance --> AssessMotor[Assess Motor Skills]
-    RecordPerformance --> AssessCognitive[Assess Cognitive Skills]
+    RecordPerformance -->|<<include>>| SaveAssessment[Save Assessment]
+    RecordPerformance -->|<<extend>>| AssessSocial[Assess Social Skills]
+    RecordPerformance -->|<<extend>>| AssessMotor[Assess Motor Skills]
+    RecordPerformance -->|<<extend>>| AssessCognitive[Assess Cognitive Skills]
+    RecordPerformance -->|<<extend>>| FlagConcerns[Flag Concerns]
+
+    AssessSocial -->|<<include>>| CompareMilestones[Compare to Milestones]
+    AssessMotor -->|<<include>>| CompareMilestones
+    AssessCognitive -->|<<include>>| CompareMilestones
+
+    RecordBehavior -->|<<include>>| TimestampEvent[Timestamp Event]
+    RecordBehavior -->|<<extend>>| NotifyParent[Notify Parent]
+    RecordBehavior -->|<<extend>>| NotifyAdmin[Notify Admin]
+
+    RecordAttendance -->|<<include>>| UpdateRecord[Update Attendance Record]
+
+    GenerateReport -->|<<include>>| AggregateData[Aggregate Performance Data]
+    GenerateReport -->|<<extend>>| IncludeRecommendations[Include Recommendations]
+
+    ViewPerformance -->|<<include>>| LoadData[Load Performance Data]
 ```
 
 ### 4.1.5 Learning Style Analyzer Module
@@ -97,14 +142,26 @@ graph TD
     Admin --> ViewLearningStyle
     Admin --> UpdateAssessment[Update Assessment]
 
-    ConductAssessment --> InputObservations[Input Observations]
-    ConductAssessment --> CompleteQuestionnaire[Complete Questionnaire]
+    ConductAssessment -->|<<include>>| ValidateCompleteness[Validate Completeness]
+    ConductAssessment -->|<<include>>| SubmitToSystem[Submit to System]
+    ConductAssessment -->|<<extend>>| InputObservations[Input Observations]
+    ConductAssessment -->|<<extend>>| CompleteQuestionnaire[Complete Questionnaire]
+    ConductAssessment -->|<<extend>>| RecordActivities[Record Preferred Activities]
 
     System --> AnalyzeData[Analyze Learning Data]
     System --> GenerateProfile[Generate Learning Profile]
-    AnalyzeData --> IdentifyVisual[Identify Visual Learner]
-    AnalyzeData --> IdentifyAuditory[Identify Auditory Learner]
-    AnalyzeData --> IdentifyKinesthetic[Identify Kinesthetic Learner]
+
+    AnalyzeData -->|<<include>>| CalculateScores[Calculate Style Scores]
+    AnalyzeData -->|<<extend>>| IdentifyVisual[Identify Visual Learner]
+    AnalyzeData -->|<<extend>>| IdentifyAuditory[Identify Auditory Learner]
+    AnalyzeData -->|<<extend>>| IdentifyKinesthetic[Identify Kinesthetic Learner]
+    AnalyzeData -->|<<extend>>| IdentifyMultimodal[Identify Multimodal Learner]
+
+    GenerateProfile -->|<<include>>| CreateRecommendations[Create Teaching Recommendations]
+    GenerateProfile -->|<<extend>>| ShareWithParent[Share with Parent]
+    GenerateProfile -->|<<extend>>| TriggerTutoring[Trigger Tutoring Recommendations]
+
+    ViewLearningStyle -->|<<include>>| LoadProfile[Load Learning Profile]
 ```
 
 ### 4.1.6 Tutoring Recommendations Module
@@ -126,9 +183,28 @@ graph TD
     System --> AnalyzePerformance[Analyze Performance Data]
     System --> MatchLearningStyle[Match Learning Style]
 
-    GenerateRecommendations --> SuggestActivities[Suggest Activities]
-    GenerateRecommendations --> SuggestResources[Suggest Resources]
-    GenerateRecommendations --> SuggestStrategies[Suggest Strategies]
+    GenerateRecommendations -->|<<include>>| CollectStudentData[Collect Student Data]
+    GenerateRecommendations -->|<<include>>| CreateTutoringPlan[Create Tutoring Plan]
+    GenerateRecommendations -->|<<extend>>| SuggestActivities[Suggest Activities]
+    GenerateRecommendations -->|<<extend>>| SuggestResources[Suggest Resources]
+    GenerateRecommendations -->|<<extend>>| SuggestStrategies[Suggest Strategies]
+    GenerateRecommendations -->|<<extend>>| PrioritizeByImpact[Prioritize by Impact]
+
+    AnalyzePerformance -->|<<include>>| IdentifyWeakAreas[Identify Weak Areas]
+    AnalyzePerformance -->|<<include>>| IdentifyStrengths[Identify Strengths]
+
+    MatchLearningStyle -->|<<include>>| RetrieveLearningProfile[Retrieve Learning Profile]
+
+    ImplementRecommendations -->|<<include>>| MarkAsImplemented[Mark as Implemented]
+    ImplementRecommendations -->|<<extend>>| RecordFeedback[Record Feedback]
+
+    UpdateProgress -->|<<include>>| SaveProgress[Save Progress]
+    UpdateProgress -->|<<extend>>| NotifyParent[Notify Parent]
+
+    ProvideFeedback -->|<<include>>| SubmitFeedback[Submit Feedback]
+    ProvideFeedback -->|<<extend>>| AdjustPlan[Adjust Plan]
+
+    ViewRecommendations -->|<<include>>| LoadRecommendations[Load Recommendations]
 ```
 
 ---
