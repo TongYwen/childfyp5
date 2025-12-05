@@ -1019,9 +1019,8 @@ def check_inactive_users():
                 stats['errors'].append(f"Error sending warning to {user['email']}: {str(e)}")
 
         # 2. Find PARENT users who need final warning (28+ days inactive, warning already sent)
-        # Only send final warning once - check if warning was sent 5+ days ago (between day 23-28)
         cursor.execute("""
-            SELECT id, name, email, last_login, inactive_warning_sent
+            SELECT id, name, email, last_login
             FROM users
             WHERE role = 'parent'
             AND is_active = 1
@@ -1030,19 +1029,12 @@ def check_inactive_users():
             AND last_login IS NOT NULL
             AND last_login <= %s
             AND inactive_warning_sent IS NOT NULL
-            AND inactive_warning_sent <= %s
-        """, (final_warning_threshold, warning_threshold))
+        """, (final_warning_threshold,))
 
         users_for_final_warning = cursor.fetchall()
         for user in users_for_final_warning:
             try:
                 send_final_warning_email(user['email'], user['name'], 2)
-                # Update the warning timestamp to prevent sending final warning multiple times
-                cursor.execute(
-                    "UPDATE users SET inactive_warning_sent = %s WHERE id = %s",
-                    (now, user['id'])
-                )
-                conn.commit()
                 stats['final_warnings_sent'] += 1
             except Exception as e:
                 stats['errors'].append(f"Error sending final warning to {user['email']}: {str(e)}")

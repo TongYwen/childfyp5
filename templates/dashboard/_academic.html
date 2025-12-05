@@ -90,7 +90,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    {% for row in display_scores if row.subject == subject %}
+                    {% for row in scores if row.subject == subject %}
                     <tr>
                       <td>{{ row.date.strftime('%Y-%m') }}</td>
                       <td>{{ row.score }}</td>
@@ -176,17 +176,17 @@
     </div>
 
     {% if years|length == 0 %}
-      <p class="text-muted mb-0">Add academic scores to see yearly history.</p>
-    {% else %}
-      <div class="mb-3">
-        <p class="mb-1"><strong>Overall average:</strong> {{ overall_avg if overall_avg is not none else 'No records yet' }}</p>
+        <p class="text-muted mb-0">Add academic scores to see yearly history.</p>
+      {% else %}
+        <div class="mb-3">
+          <p class="mb-1"><strong>Overall average:</strong> {{ overall_avg if overall_avg is not none else 'No records yet' }}</p>
           <div class="d-flex flex-wrap gap-2">
             {% for subject, avg in subject_year_avgs.items() %}
               <span class="badge bg-primary">{{ subject }}: {{ avg }}</span>
             {% endfor %}
           </div>
-        {% endif %}
-      </div>
+     </div>
+
 
       <div class="row g-3">
         <div class="col-lg-7">
