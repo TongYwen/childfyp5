@@ -313,108 +313,95 @@ flowchart TD
     ViewDashboard --> End3([End - Login Successful])
 ```
 
-### 4.2.2 User Account Management Module (includes Inactive Parent Detection)
+### 4.2.2 Inactive Parent Detection Module
 ```mermaid
 flowchart TD
-    subgraph User["👤 USER (Parent/Admin Actions)"]
-        Start([Start])
-        SelectAction{Select Action}
-        EnterDetails[Enter User Details]
-        ReEnterDetails[Re-enter Details]
-        EditFields[Edit Profile Fields]
-        ReEditFields[Re-edit Fields]
-        ConfirmDelete{Confirm Deletion?}
-        ForceDelete{Force Delete?}
-        ViewSuccess1[View Success Message]
-        ViewSuccess2[View Success Message]
-        ViewSuccess3[View Success Message]
-        ViewReport[View Inactivity Report]
+    subgraph Trigger["🔄 TRIGGER SOURCE"]
+        AutoStart([Automated Trigger: Daily at 2:00 AM via APScheduler])
+        ManualStart([Manual Trigger: Admin Clicks Check Inactive Users])
+    end
+
+    subgraph Admin["👤 ADMIN (User Actions)"]
+        Navigate[Navigate to Inactive Users Page]
+        ClickCheck[Click Check Inactive Users Button]
+        ViewCategories[View Categorized Users: At Risk, Pending Deletion, Protected, Active]
+        ViewStats[View Statistics: Warnings Sent, Accounts Deleted, Errors]
     end
 
     subgraph System["⚙️ SYSTEM (Automated Tasks)"]
-        LoadProfile[Load User Profile from Database]
-        ValidateDetails{Validate Details}
-        ShowValidationError[Display Validation Error]
-        CheckDuplicate{Check Duplicate Email in Database}
-        ShowDuplicateError[Display Duplicate Error]
-        CreateUser[Create User in Database]
-        SendWelcomeEmail[Send Welcome Email]
-        ShowSuccess1[Display Success Message]
-        ValidateChanges{Validate Changes}
-        ShowError2[Display Error]
-        SaveChanges[Save Changes to Database]
-        UpdateTimestamp[Update Last Activity Timestamp]
-        ShowSuccess2[Display Success Message]
-        CheckDependencies{Has Dependencies?}
-        ShowWarning[Display Warning Message]
-        DeleteUser[Delete User from Database]
-        SendNotification[Send Deletion Notification]
-        ShowSuccess3[Display Success Message]
-        StartDetection[Start Inactivity Detection Job]
-        QueryDB[Query Parent Login History]
-        CheckLastLogin{Last Login > 30 Days?}
-        FlagInactive[Flag as Inactive Parent]
-        SendReminder[Send Activity Reminder Email]
-        LogInactivity[Log Inactivity Record]
-        CheckNext{More Parents?}
-        GenerateReport[Generate Inactivity Report]
-        DisplayReport[Display Report]
+        InitCheck[Initialize Inactivity Check]
+        CalculateThresholds[Calculate Time Thresholds: 23, 28, 30 Days]
+        InitStats[Initialize Statistics Tracker]
+
+        Query23Days[Query Parents: last_login <= 23 days AND no warning sent]
+        Loop23{More Users in 23-Day List?}
+        SendFirstWarning[Send First Warning Email: 7 days until deletion]
+        UpdateWarningFlag[UPDATE users SET inactive_warning_sent = NOW]
+        IncrementWarnings[Increment warnings_sent Counter]
+
+        Query28Days[Query Parents: last_login <= 28 days AND warning sent]
+        Loop28{More Users in 28-Day List?}
+        SendFinalWarning[Send Final Warning Email: 2 days until deletion]
+        IncrementFinal[Increment final_warnings_sent Counter]
+
+        Query30Days[Query Parents: last_login <= 30 days AND not protected]
+        Loop30{More Users in 30-Day List?}
+        SendDeletionEmail[Send Deletion Confirmation Email]
+        SoftDelete[UPDATE users SET deleted_at = NOW, is_active = 0, deletion_reason = 'Inactive for 30+ days']
+        IncrementDeleted[Increment accounts_deleted Counter]
+
+        QueryNeverLogged[Query Parents: last_login IS NULL AND created_at <= 30 days]
+        LoopNever{More Never-Logged Users?}
+        SendNeverEmail[Send Deletion Confirmation Email]
+        SoftDeleteNever[UPDATE users SET deleted_at = NOW, is_active = 0, deletion_reason = 'Never logged in']
+        IncrementDeletedNever[Increment accounts_deleted Counter]
+
+        GenerateReport[Generate Statistics Report]
+        DisplayReport[Display Report with Statistics]
+        CommitChanges[Commit All Database Changes]
     end
 
-    Start --> SelectAction
-    SelectAction -->|Create Account| EnterDetails
-    SelectAction -->|Edit Profile| LoadProfile
-    SelectAction -->|Delete Account| ConfirmDelete
-    SelectAction -->|Check Inactive Parents| StartDetection
+    AutoStart --> InitCheck
+    ManualStart --> Navigate
+    Navigate --> ClickCheck
+    ClickCheck --> InitCheck
 
-    EnterDetails --> ValidateDetails
-    ValidateDetails -->|Invalid| ShowValidationError
-    ShowValidationError --> ReEnterDetails
-    ReEnterDetails --> ValidateDetails
-    ValidateDetails -->|Valid| CheckDuplicate
-    CheckDuplicate -->|Exists| ShowDuplicateError
-    ShowDuplicateError --> ReEnterDetails
-    CheckDuplicate -->|Unique| CreateUser
-    CreateUser --> SendWelcomeEmail
-    SendWelcomeEmail --> ShowSuccess1
-    ShowSuccess1 --> ViewSuccess1
-    ViewSuccess1 --> End1([End])
+    InitCheck --> CalculateThresholds
+    CalculateThresholds --> InitStats
+    InitStats --> Query23Days
 
-    LoadProfile --> EditFields
-    EditFields --> ValidateChanges
-    ValidateChanges -->|Invalid| ShowError2
-    ShowError2 --> ReEditFields
-    ReEditFields --> ValidateChanges
-    ValidateChanges -->|Valid| SaveChanges
-    SaveChanges --> UpdateTimestamp
-    UpdateTimestamp --> ShowSuccess2
-    ShowSuccess2 --> ViewSuccess2
-    ViewSuccess2 --> End2([End])
+    Query23Days --> Loop23
+    Loop23 -->|Yes| SendFirstWarning
+    SendFirstWarning --> UpdateWarningFlag
+    UpdateWarningFlag --> IncrementWarnings
+    IncrementWarnings --> Loop23
+    Loop23 -->|No| Query28Days
 
-    ConfirmDelete -->|No| End3([End])
-    ConfirmDelete -->|Yes| CheckDependencies
-    CheckDependencies -->|Yes| ShowWarning
-    ShowWarning --> ForceDelete
-    ForceDelete -->|No| End4([End])
-    ForceDelete -->|Yes| DeleteUser
-    CheckDependencies -->|No| DeleteUser
-    DeleteUser --> SendNotification
-    SendNotification --> ShowSuccess3
-    ShowSuccess3 --> ViewSuccess3
-    ViewSuccess3 --> End5([End])
+    Query28Days --> Loop28
+    Loop28 -->|Yes| SendFinalWarning
+    SendFinalWarning --> IncrementFinal
+    IncrementFinal --> Loop28
+    Loop28 -->|No| Query30Days
 
-    StartDetection --> QueryDB
-    QueryDB --> CheckLastLogin
-    CheckLastLogin -->|No| CheckNext
-    CheckLastLogin -->|Yes| FlagInactive
-    FlagInactive --> SendReminder
-    SendReminder --> LogInactivity
-    LogInactivity --> CheckNext
-    CheckNext -->|Yes| QueryDB
-    CheckNext -->|No| GenerateReport
+    Query30Days --> Loop30
+    Loop30 -->|Yes| SendDeletionEmail
+    SendDeletionEmail --> SoftDelete
+    SoftDelete --> IncrementDeleted
+    IncrementDeleted --> Loop30
+    Loop30 -->|No| QueryNeverLogged
+
+    QueryNeverLogged --> LoopNever
+    LoopNever -->|Yes| SendNeverEmail
+    SendNeverEmail --> SoftDeleteNever
+    SoftDeleteNever --> IncrementDeletedNever
+    IncrementDeletedNever --> LoopNever
+    LoopNever -->|No| CommitChanges
+
+    CommitChanges --> GenerateReport
     GenerateReport --> DisplayReport
-    DisplayReport --> ViewReport
-    ViewReport --> End6([End])
+    DisplayReport --> ViewStats
+    ViewStats --> ViewCategories
+    ViewCategories --> End([End])
 ```
 
 ### 4.2.3 Academic Progress Tracker Module
