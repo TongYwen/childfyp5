@@ -415,110 +415,207 @@ flowchart TD
 ### 4.2.5 Learning Style Analyzer Module
 ```mermaid
 flowchart TD
-    Start([Start]) --> LoadPage[Parent Navigates to Learning Style Page]
-    LoadPage --> LoadData[Load Observations, Questionnaires, and Cached Analysis]
-    LoadData --> SelectAction{Parent Selects Action}
+    subgraph Parent["👤 PARENT (User Actions)"]
+        Start([Start])
+        Navigate[Navigate to Learning Style Page]
+        SelectAction{Select Action}
+        EnterObs[Enter Observation Text]
+        SubmitObs[Submit Observation]
+        ViewQuest[View Questionnaire Questions]
+        AnswerQuest[Answer Questions Scale 1-5]
+        SubmitQuest[Submit Questionnaire]
+        ClickGenerate[Click Generate/Regenerate Analysis]
+        ViewCached[View Cached Analysis]
+        ViewAnalysis[View Learning Style Analysis]
+    end
 
-    SelectAction -->|Add Observation| EnterObservation[Enter Observation Text]
-    EnterObservation --> SaveObservation[Save to learning_observations Table]
-    SaveObservation --> RedirectPage[Redirect to Learning Style Page]
-    RedirectPage --> LoadPage
+    subgraph System["⚙️ SYSTEM (Automated Tasks)"]
+        LoadData[Load Observations, Questionnaires, Cached Analysis]
+        SaveObs[Save to learning_observations Table]
+        Redirect1[Redirect to Page]
+        LoadQuestions[Load Questions from test_questions Table]
+        SaveAnswers[Save to test_answers Table]
+        Redirect2[Redirect to Page]
+        CheckData{Has Observations or Answers?}
+        ShowNoData[Display 'No Data Available' Message]
+        CreatePayload[Create JSON Data Payload]
+        CheckCached{Compare with Cached Data}
+        DisplayCached[Display Cached Analysis]
+        PrepareObs[Format Observations with Dates]
+        GroupAnswers[Group Answers by VARK Category]
+        BuildPrompt[Build AI Prompt]
+        SendGemini[Send to Gemini AI]
+        AnalyzeVARK[AI Analyzes VARK Data]
+        GenerateRatings[AI Generates Ratings]
+        IdentifyStyle[AI Identifies Main Style]
+        GenerateTips[AI Generates 3 Tips]
+        FormatHTML[Format as HTML]
+        DeleteOld[Delete Old ai_results]
+        InsertNew[Insert New ai_results]
+        CommitDB[Commit to Database]
+        DisplayNew[Display Learning Style Analysis]
+        HandleError{Check Error Type}
+        ShowTokenError[Display Token Error]
+        ShowError[Display Error Message]
+    end
 
-    SelectAction -->|Take Questionnaire| ViewQuestions[View VARK Questionnaire Questions]
-    ViewQuestions --> AnswerQuestions[Parent Answers Questions Scale 1-5]
-    AnswerQuestions --> SubmitAnswers[Submit Questionnaire Answers]
-    SubmitAnswers --> SaveAnswers[Save to test_answers Table]
-    SaveAnswers --> RedirectPage
+    Start --> Navigate
+    Navigate --> LoadData
+    LoadData --> SelectAction
 
-    SelectAction -->|Generate Analysis| CheckDataExists{Has Observations or Answers?}
-    CheckDataExists -->|No| ShowNoData[Show 'No Data Available' Message]
+    SelectAction -->|Add Observation| EnterObs
+    EnterObs --> SubmitObs
+    SubmitObs --> SaveObs
+    SaveObs --> Redirect1
+    Redirect1 --> LoadData
+
+    SelectAction -->|Take Questionnaire| LoadQuestions
+    LoadQuestions --> ViewQuest
+    ViewQuest --> AnswerQuest
+    AnswerQuest --> SubmitQuest
+    SubmitQuest --> SaveAnswers
+    SaveAnswers --> Redirect2
+    Redirect2 --> LoadData
+
+    SelectAction -->|Generate Analysis| ClickGenerate
+    ClickGenerate --> CheckData
+    CheckData -->|No| ShowNoData
     ShowNoData --> End1([End])
 
-    CheckDataExists -->|Yes| CreateDataPayload[Create JSON Data Payload]
-    CreateDataPayload --> CheckCached{Compare with Cached Data}
-    CheckCached -->|Cached & No Regen| DisplayCached[Display Cached Analysis]
-    DisplayCached --> End2([End])
+    CheckData -->|Yes| CreatePayload
+    CreatePayload --> CheckCached
+    CheckCached -->|Cached & No Regen| DisplayCached
+    DisplayCached --> ViewCached
+    ViewCached --> End2([End])
 
-    CheckCached -->|Not Cached or Regen| PrepareObservations[Format Observations with Dates]
-    PrepareObservations --> GroupAnswers[Group Answers by VARK Category]
-    GroupAnswers --> BuildPrompt[Build AI Prompt]
-    BuildPrompt --> SendToGemini[Send to Gemini AI]
+    CheckCached -->|Not Cached or Regen| PrepareObs
+    PrepareObs --> GroupAnswers
+    GroupAnswers --> BuildPrompt
+    BuildPrompt --> SendGemini
+    SendGemini --> AnalyzeVARK
+    AnalyzeVARK --> GenerateRatings
+    GenerateRatings --> IdentifyStyle
+    IdentifyStyle --> GenerateTips
+    GenerateTips --> FormatHTML
+    FormatHTML --> DeleteOld
+    DeleteOld --> InsertNew
+    InsertNew --> CommitDB
+    CommitDB --> DisplayNew
+    DisplayNew --> ViewAnalysis
+    ViewAnalysis --> End3([End])
 
-    SendToGemini --> GeminiAnalyze[AI Analyzes VARK Data]
-    GeminiAnalyze --> GenerateRatings[Generate Visual/Auditory/Reading/Kinesthetic Ratings]
-    GenerateRatings --> IdentifyMainStyle[Identify Main Learning Style]
-    IdentifyMainStyle --> GenerateTips[Generate 3 Tips for Parents]
-    GenerateTips --> FormatHTML[Format as HTML]
-
-    FormatHTML --> DeleteOldResult[Delete Old ai_results Entry]
-    DeleteOldResult --> InsertNewResult[Insert New ai_results Entry]
-    InsertNewResult --> CommitDB[Commit to Database]
-    CommitDB --> DisplayAnalysis[Display Learning Style Analysis]
-    DisplayAnalysis --> End3([End])
-
-    SendToGemini -->|Error| HandleError{Check Error Type}
-    HandleError -->|Token Limit| ReturnTokenError[Return Token Limit Error]
-    ReturnTokenError --> End4([End])
-    HandleError -->|Other Error| ShowError[Show Error Message]
+    SendGemini -.->|Error| HandleError
+    HandleError -->|Token Limit| ShowTokenError
+    ShowTokenError --> End4([End])
+    HandleError -->|Other| ShowError
     ShowError --> End5([End])
 ```
 
 ### 4.2.6 Tutoring Recommendations Module
 ```mermaid
 flowchart TD
-    Start([Start]) --> LoadPage[Parent Navigates to Tutoring Page]
-    LoadPage --> LoadChild[Load Child Data]
-    LoadChild --> FetchAIResults[Fetch AI Results: Learning Style + Preschool]
-    FetchAIResults --> CheckData{Has Learning or Preschool Data?}
+    subgraph Parent["👤 PARENT (User Actions)"]
+        Start([Start])
+        Navigate[Navigate to Tutoring Page]
+        ClickGenerate[Click Generate/Regenerate Button]
+        ViewCached[View Cached Recommendations + Products]
+        ViewNew[View New Recommendations + Products]
+        ViewNoData[View 'Run Assessments First' Message]
+    end
 
-    CheckData -->|No| ShowNoData[Show 'No AI analysis data available' Message]
-    ShowNoData --> End1([End])
+    subgraph System["⚙️ SYSTEM (Automated Tasks)"]
+        LoadChild[Load Child Data]
+        FetchAI[Fetch AI Results: Learning Style + Preschool]
+        CheckData{Has Learning or Preschool Data?}
+        ShowNoData[Display 'No AI Analysis Available' Message]
+        FetchLearning[Fetch Learning Style Analysis]
+        FetchPreschool[Fetch Preschool Analysis]
+        CreatePayload[Create JSON Data Payload]
+        CheckCached[Fetch Cached Tutoring Result]
+        CompareData{Data Changed or Regen?}
+        FetchProducts[Fetch Product Recommendations from DB]
+        DisplayCached[Display Cached Recommendations + Products]
+        BuildPrompt[Build AI Prompt with Child Profile]
+        AddLearning[Add Learning Style to Prompt]
+        AddPreschool[Add Preschool Data to Prompt]
+        DefineOutput[Define 4 Output Sections]
+        SendGemini[Send to Gemini AI]
+        AIAnalyze[AI Analyzes Combined Data]
+        IdentifyWeak[AI Identifies Weak Areas]
+        RecommendFocus[AI Recommends Focus Areas]
+        SuggestActivities[AI Suggests Activities]
+        GenerateProducts[AI Generates Product Recommendations]
+        FormatHTML[AI Formats as HTML]
+        ExtractProducts[Extract Product Tags with Regex]
+        ParseFields[Parse Product Fields]
+        GenerateLinks[Generate Shopping Links]
+        CalcPrice[Calculate Price Range]
+        InsertProducts[Insert into product_recommendations]
+        RemoveTags[Remove Product Tags from HTML]
+        SaveOrUpdate{Cached Result Exists?}
+        UpdateCache[UPDATE ai_results]
+        InsertCache[INSERT INTO ai_results]
+        CommitDB[Commit to Database]
+        FetchProductsNew[Fetch Top 10 Products]
+        DisplayNew[Display New Recommendations + Products]
+        HandleError{Check Error Type}
+        ShowTokenError[Display Token Error]
+        ShowError[Display Error Message]
+    end
 
-    CheckData -->|Yes| FetchLearning[Fetch Learning Style Analysis]
-    FetchLearning --> FetchPreschool[Fetch Preschool Analysis]
-    FetchPreschool --> CreatePayload[Create JSON Data Payload]
-    CreatePayload --> CheckCached[Fetch Cached Tutoring Result]
-    CheckCached --> CompareData{Data Changed or Regen?}
+    Start --> Navigate
+    Navigate --> LoadChild
+    LoadChild --> FetchAI
+    FetchAI --> CheckData
 
-    CompareData -->|Cached & Same| FetchProducts[Fetch Product Recommendations]
-    FetchProducts --> DisplayCached[Display Cached Recommendations + Products]
-    DisplayCached --> End2([End])
+    CheckData -->|No| ShowNoData
+    ShowNoData --> ViewNoData
+    ViewNoData --> End1([End])
 
-    CompareData -->|Changed or Regen| BuildPrompt[Build AI Prompt with Child Profile]
-    BuildPrompt --> AddLearningContext[Add Learning Style Analysis to Prompt]
-    AddLearningContext --> AddPreschoolContext[Add Preschool Analysis to Prompt]
-    AddPreschoolContext --> DefineOutput[Define 4 Output Sections]
-    DefineOutput --> SendToGemini[Send to Gemini AI]
+    CheckData -->|Yes| FetchLearning
+    FetchLearning --> FetchPreschool
+    FetchPreschool --> CreatePayload
+    CreatePayload --> CheckCached
+    CheckCached --> CompareData
 
-    SendToGemini --> GeminiAnalyze[AI Analyzes Combined Data]
-    GeminiAnalyze --> IdentifyWeakAreas[Identify Potential Weak Areas]
-    IdentifyWeakAreas --> RecommendFocus[Recommend Focus Areas]
-    RecommendFocus --> SuggestActivities[Suggest Personalized Activities]
-    SuggestActivities --> GenerateProducts[Generate Product Recommendations with Tags]
-    GenerateProducts --> FormatHTML[Format as HTML Response]
+    CompareData -->|Cached & Same| FetchProducts
+    FetchProducts --> DisplayCached
+    DisplayCached --> ViewCached
+    ViewCached --> End2([End])
 
-    FormatHTML --> ExtractProducts[Extract Product Tags with Regex]
-    ExtractProducts --> ParseProductFields[Parse Product Fields: Name, Type, Category, etc.]
-    ParseProductFields --> GenerateLinks[Generate Shopping Links: Amazon, Shopee, Lazada]
-    GenerateLinks --> CalculatePriceRange[Calculate Price Range: Budget/Mid/Premium]
-    CalculatePriceRange --> InsertProducts[Insert into product_recommendations Table]
+    CompareData -->|Changed or Regen| ClickGenerate
+    ClickGenerate --> BuildPrompt
+    BuildPrompt --> AddLearning
+    AddLearning --> AddPreschool
+    AddPreschool --> DefineOutput
+    DefineOutput --> SendGemini
+    SendGemini --> AIAnalyze
+    AIAnalyze --> IdentifyWeak
+    IdentifyWeak --> RecommendFocus
+    RecommendFocus --> SuggestActivities
+    SuggestActivities --> GenerateProducts
+    GenerateProducts --> FormatHTML
+    FormatHTML --> ExtractProducts
+    ExtractProducts --> ParseFields
+    ParseFields --> GenerateLinks
+    GenerateLinks --> CalcPrice
+    CalcPrice --> InsertProducts
+    InsertProducts --> RemoveTags
+    RemoveTags --> SaveOrUpdate
 
-    InsertProducts --> RemoveTags[Remove Product Tags from HTML]
-    RemoveTags --> SaveOrUpdate{Cached Result Exists?}
-
-    SaveOrUpdate -->|Yes| UpdateCache[UPDATE ai_results SET result]
-    SaveOrUpdate -->|No| InsertCache[INSERT INTO ai_results]
-
-    UpdateCache --> CommitDB[Commit to Database]
+    SaveOrUpdate -->|Yes| UpdateCache
+    SaveOrUpdate -->|No| InsertCache
+    UpdateCache --> CommitDB
     InsertCache --> CommitDB
-    CommitDB --> FetchProductsNew[Fetch Top 10 Product Recommendations]
-    FetchProductsNew --> DisplayNew[Display Recommendations + Products]
-    DisplayNew --> End3([End])
+    CommitDB --> FetchProductsNew
+    FetchProductsNew --> DisplayNew
+    DisplayNew --> ViewNew
+    ViewNew --> End3([End])
 
-    SendToGemini -->|Error| HandleError{Check Error Type}
-    HandleError -->|Token Limit| ReturnTokenError[Return Token Limit Error]
-    ReturnTokenError --> End4([End])
-    HandleError -->|Other Error| ShowError[Show Error Message]
+    SendGemini -.->|Error| HandleError
+    HandleError -->|Token Limit| ShowTokenError
+    ShowTokenError --> End4([End])
+    HandleError -->|Other| ShowError
     ShowError --> End5([End])
 ```
 
