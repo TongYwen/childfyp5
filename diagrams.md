@@ -254,59 +254,62 @@ graph TB
 flowchart TD
     subgraph User["👤 USER (Parent/Admin Actions)"]
         Start([Start])
-        EnterCred[Enter Username and Password]
-        ReEnter1[Re-enter Credentials]
-        ReEnter2[Re-enter Credentials]
-        ViewError[View Input Error]
+        EnterCred[Enter Email and Password]
+        ReEnter[Re-enter Credentials]
         ViewInvalidError[View Invalid Credentials Error]
+        ViewDeletedError[View Account Deleted Message]
         ViewInactive[View Account Inactive Message]
         ViewDashboard[Access Dashboard]
     end
 
     subgraph System["⚙️ SYSTEM (Automated Tasks)"]
-        ValidateInput{Validate Input Format}
-        ShowError1[Display Input Error]
-        CheckCreds{Check Credentials in Database}
-        IncrementAttempts[Increment Failed Attempts]
-        CheckAttempts{Attempts > 3?}
-        LockAccount[Lock Account in Database]
-        SendLockEmail[Send Lock Notification Email]
-        ShowError2[Display Invalid Credentials Error]
-        CheckStatus{Account Active?}
-        ShowInactive[Display Account Inactive Message]
-        GenerateToken[Generate Session Token]
-        LogActivity[Log Login Activity to Database]
-        Redirect[Redirect to Dashboard]
+        QueryDB[Query Database for User by Email]
+        CheckExists{User Exists?}
+        VerifyPassword{Verify Password Hash}
+        CheckDeleted{Account Deleted?}
+        ShowDeletedMsg[Display Deleted Account Message]
+        CheckActive{Account Active?}
+        ShowInactiveMsg[Display Account Inactive Message]
+        UpdateLastLogin[Update last_login Timestamp]
+        ReactivateAccount[Set is_active = 1]
+        ClearWarning[Clear inactive_warning_sent]
+        RegenerateSession[Regenerate Session to Prevent Fixation]
+        CreateUserObj[Create User Object]
+        LoginUser[Login User via Flask-Login]
+        SetSessionConfig[Configure Session timeout Based on Role]
+        ShowInvalidMsg[Display Invalid Credentials Message]
+        RedirectToDashboard[Redirect to Role-Based Dashboard]
     end
 
     Start --> EnterCred
-    EnterCred --> ValidateInput
-    ValidateInput -->|Invalid| ShowError1
-    ShowError1 --> ViewError
-    ViewError --> ReEnter1
-    ReEnter1 --> ValidateInput
+    EnterCred --> QueryDB
+    QueryDB --> CheckExists
+    CheckExists -->|No| ShowInvalidMsg
+    CheckExists -->|Yes| VerifyPassword
+    VerifyPassword -->|Invalid| ShowInvalidMsg
+    ShowInvalidMsg --> ViewInvalidError
+    ViewInvalidError --> ReEnter
+    ReEnter --> QueryDB
 
-    ValidateInput -->|Valid| CheckCreds
-    CheckCreds -->|Invalid| IncrementAttempts
-    IncrementAttempts --> CheckAttempts
-    CheckAttempts -->|Yes| LockAccount
-    LockAccount --> SendLockEmail
-    SendLockEmail --> End1([End - Account Locked])
+    VerifyPassword -->|Valid| CheckDeleted
+    CheckDeleted -->|Yes| ShowDeletedMsg
+    ShowDeletedMsg --> ViewDeletedError
+    ViewDeletedError --> End1([End - Account Deleted])
 
-    CheckAttempts -->|No| ShowError2
-    ShowError2 --> ViewInvalidError
-    ViewInvalidError --> ReEnter2
-    ReEnter2 --> ValidateInput
-
-    CheckCreds -->|Valid| CheckStatus
-    CheckStatus -->|No| ShowInactive
-    ShowInactive --> ViewInactive
+    CheckDeleted -->|No| CheckActive
+    CheckActive -->|No| ShowInactiveMsg
+    ShowInactiveMsg --> ViewInactive
     ViewInactive --> End2([End - Inactive Account])
 
-    CheckStatus -->|Yes| GenerateToken
-    GenerateToken --> LogActivity
-    LogActivity --> Redirect
-    Redirect --> ViewDashboard
+    CheckActive -->|Yes| UpdateLastLogin
+    UpdateLastLogin --> ReactivateAccount
+    ReactivateAccount --> ClearWarning
+    ClearWarning --> RegenerateSession
+    RegenerateSession --> CreateUserObj
+    CreateUserObj --> LoginUser
+    LoginUser --> SetSessionConfig
+    SetSessionConfig --> RedirectToDashboard
+    RedirectToDashboard --> ViewDashboard
     ViewDashboard --> End3([End - Login Successful])
 ```
 
@@ -417,160 +420,162 @@ flowchart TD
 ### 4.2.3 Academic Progress Tracker Module
 ```mermaid
 flowchart TD
-    subgraph User["👤 USER (Parent/Admin Actions)"]
+    subgraph User["👤 USER (Parent Actions)"]
         Start([Start])
-        SelectStudent[Select Student]
-        SelectAction{Select Action}
-        SelectSubject[Select Subject/Skill]
-        EnterGrade[Enter Grade/Score]
-        AddComments[Add Comments]
-        ReEnterGrade[Re-enter Grade/Score]
-        ViewProgress[View Progress Dashboard]
-        ExportOption{Export Data?}
-        SelectFormat[Select Export Format]
-        DownloadFile[Download File]
-        SelectPeriod[Select Time Period]
-        ReviewReport[Review Report]
-        SendReport{Send to Parent?}
+        Navigate[Navigate to Dashboard]
+        ViewAction{Select Action}
+        EnterSubject[Enter Subject Name]
+        EnterScore[Enter Score 0-100]
+        SelectYear[Select Year]
+        SelectMonth[Select Month]
+        SubmitScore[Submit Academic Score]
+        ViewError[View Validation Error]
+        ReEnter[Re-enter Score Details]
+        ViewChart[View Academic Progress Charts]
+        ViewScores[View Score List by Subject]
     end
 
     subgraph System["⚙️ SYSTEM (Automated Tasks)"]
-        ValidateData{Validate Data}
-        ShowError1[Display Error]
-        SaveProgress[Save Progress Data to Database]
-        UpdateAnalytics[Update Analytics]
-        CalculateTrends[Calculate Performance Trends]
-        CheckSignificant{Significant Change?}
-        NotifyParent1[Send Notification to Parent]
-        LoadProgressData[Load Progress Data from Database]
-        GenerateCharts[Generate Progress Charts]
-        DisplayProgress[Display Progress Dashboard]
-        GenerateExport[Generate Export File]
-        AnalyzeData[Analyze Progress Data]
-        GenerateReport[Generate Detailed Report]
-        EmailReport[Email Report to Parent]
+        LoadChild[Load Selected Child from Session]
+        QueryScores[Query academic_scores Table]
+        ExtractSubjects[Extract Unique Subjects from Scores]
+        FormatDates[Format Dates as YYYY-MM]
+        DisplayDashboard[Display Dashboard with Scores and Charts]
+        ValidateScore{Score Between 0-100?}
+        ShowScoreError[Display Score Range Error]
+        ValidateDate{Valid Academic Date?}
+        ShowDateError[Display Date Validation Error]
+        InsertScore[INSERT INTO academic_scores Table]
+        CommitDB[Commit to Database]
+        Redirect[Redirect to Dashboard]
     end
 
-    Start --> SelectStudent
-    SelectStudent --> SelectAction
+    Start --> Navigate
+    Navigate --> LoadChild
+    LoadChild --> QueryScores
+    QueryScores --> ExtractSubjects
+    ExtractSubjects --> FormatDates
+    FormatDates --> DisplayDashboard
+    DisplayDashboard --> ViewAction
 
-    SelectAction -->|Record Progress| SelectSubject
-    SelectSubject --> EnterGrade
-    EnterGrade --> AddComments
-    AddComments --> ValidateData
-    ValidateData -->|Invalid| ShowError1
-    ShowError1 --> ReEnterGrade
-    ReEnterGrade --> AddComments
-    ValidateData -->|Valid| SaveProgress
-    SaveProgress --> UpdateAnalytics
-    UpdateAnalytics --> CalculateTrends
-    CalculateTrends --> CheckSignificant
-    CheckSignificant -->|Yes| NotifyParent1
-    CheckSignificant -->|No| End1([End])
-    NotifyParent1 --> End1
+    ViewAction -->|View Progress| ViewChart
+    ViewChart --> ViewScores
+    ViewScores --> End1([End])
 
-    SelectAction -->|View Progress| LoadProgressData
-    LoadProgressData --> GenerateCharts
-    GenerateCharts --> DisplayProgress
-    DisplayProgress --> ViewProgress
-    ViewProgress --> ExportOption
-    ExportOption -->|Yes| SelectFormat
-    SelectFormat --> GenerateExport
-    GenerateExport --> DownloadFile
-    DownloadFile --> End2([End])
-    ExportOption -->|No| End3([End])
+    ViewAction -->|Add New Score| EnterSubject
+    EnterSubject --> EnterScore
+    EnterScore --> SelectYear
+    SelectYear --> SelectMonth
+    SelectMonth --> SubmitScore
+    SubmitScore --> ValidateScore
+    ValidateScore -->|Invalid| ShowScoreError
+    ShowScoreError --> ViewError
+    ViewError --> ReEnter
+    ReEnter --> SubmitScore
 
-    SelectAction -->|Generate Report| SelectPeriod
-    SelectPeriod --> AnalyzeData
-    AnalyzeData --> GenerateReport
-    GenerateReport --> ReviewReport
-    ReviewReport --> SendReport
-    SendReport -->|Yes| EmailReport
-    EmailReport --> End4([End])
-    SendReport -->|No| End5([End])
+    ValidateScore -->|Valid| ValidateDate
+    ValidateDate -->|Invalid| ShowDateError
+    ShowDateError --> ViewError
+
+    ValidateDate -->|Valid| InsertScore
+    InsertScore --> CommitDB
+    CommitDB --> Redirect
+    Redirect --> LoadChild
 ```
 
 ### 4.2.4 Preschool Performance Tracker Module
 ```mermaid
 flowchart TD
-    subgraph User["👤 USER (Parent/Admin Actions)"]
+    subgraph User["👤 USER (Parent Actions)"]
         Start([Start])
-        SelectStudent[Select Student]
-        SelectCategory{Select Performance Category}
-        AssessSocial[Assess Social Interaction]
-        RateSocial[Rate Social Behaviors]
-        AddObs1[Add Observations]
-        AssessMotor[Assess Motor Development]
-        RateFineMotor[Rate Fine Motor Skills]
-        RateGrossMotor[Rate Gross Motor Skills]
-        AddObs2[Add Observations]
-        AssessCognitive[Assess Cognitive Development]
-        RateProblem[Rate Problem Solving]
-        RateMemory[Rate Memory]
-        RateAttention[Rate Attention Span]
-        AddObs3[Add Observations]
-        RecordBehavior[Record Behavior Incident]
-        SelectBehaviorType[Select Behavior Type]
-        DescribeIncident[Describe Incident]
-        AddAction[Add Action Taken]
+        Navigate[Navigate to Preschool Tracker]
+        SelectAction{Select Action}
+        SelectDomain[Select Developmental Domain]
+        EnterDescription[Enter Assessment Description]
+        SelectDate[Select Assessment Date YYYY-MM]
+        SubmitAssessment[Submit Assessment]
+        ViewError[View Validation Error]
+        ReEnter[Re-enter Assessment Details]
+        ViewAnalysis[View AI Development Analysis]
+        ViewAssessments[View Assessment History]
+        ClickRegen[Click Regenerate Analysis]
     end
 
     subgraph System["⚙️ SYSTEM (Automated Tasks)"]
-        SaveSocial[Save Social Assessment to Database]
-        SaveMotor[Save Motor Assessment to Database]
-        SaveCognitive[Save Cognitive Assessment to Database]
-        SaveBehavior[Save Behavior Record to Database]
-        UpdateProfile[Update Performance Profile]
-        GenerateInsights[Generate AI Insights]
-        CompareMilestones[Compare to Developmental Milestones]
-        CheckConcerns{Identify Concerns?}
-        FlagConcerns[Flag for Review]
-        NotifyParent[Send Notification to Parent and Admin]
-        CreateActionPlan[Generate Action Plan]
-        NotifyParentUpdate[Send Update to Parent]
+        LoadChild[Load Child Data from Session]
+        QueryAssessments[Query preschool_assessments Table]
+        CalculateAgeMonths[Calculate Age in Months for Each Assessment]
+        FormatDates[Format Assessment Dates]
+        CheckCached{Compare Data with Cached ai_results}
+        DisplayCached[Display Cached AI Analysis]
+        ValidateDomain{Valid Domain?}
+        ShowDomainError[Display Invalid Domain Error]
+        ValidateDesc{Description Valid and <500 chars?}
+        ShowDescError[Display Description Error]
+        ValidateDate{Date Provided?}
+        ShowDateError[Display Date Required Error]
+        InsertAssessment[INSERT INTO preschool_assessments]
+        CommitDB[Commit to Database]
+        BuildPrompt[Build AI Prompt with Child Info and Assessments]
+        LoadBenchmarks[Load developmental_milestones.csv Data]
+        SendGemini[Send Prompt to Gemini AI]
+        AIAnalyze[AI Compares Assessments to Milestones]
+        AIIdentifyConcerns[AI Identifies Developmental Concerns]
+        AIGenerateTips[AI Generates Parent Tips]
+        FormatHTML[Format AI Response as HTML]
+        UpdateAIResults[UPDATE or INSERT INTO ai_results Table]
+        DisplayNew[Display New AI Analysis]
     end
 
-    Start --> SelectStudent
-    SelectStudent --> SelectCategory
+    Start --> Navigate
+    Navigate --> LoadChild
+    LoadChild --> QueryAssessments
+    QueryAssessments --> CalculateAgeMonths
+    CalculateAgeMonths --> FormatDates
+    FormatDates --> CheckCached
 
-    SelectCategory -->|Social Skills| AssessSocial
-    AssessSocial --> RateSocial
-    RateSocial --> AddObs1
-    AddObs1 --> SaveSocial
+    CheckCached -->|Cached & Same| DisplayCached
+    DisplayCached --> SelectAction
 
-    SelectCategory -->|Motor Skills| AssessMotor
-    AssessMotor --> RateFineMotor
-    RateFineMotor --> RateGrossMotor
-    RateGrossMotor --> AddObs2
-    AddObs2 --> SaveMotor
+    CheckCached -->|New Data or Regen| BuildPrompt
+    BuildPrompt --> LoadBenchmarks
+    LoadBenchmarks --> SendGemini
+    SendGemini --> AIAnalyze
+    AIAnalyze --> AIIdentifyConcerns
+    AIIdentifyConcerns --> AIGenerateTips
+    AIGenerateTips --> FormatHTML
+    FormatHTML --> UpdateAIResults
+    UpdateAIResults --> DisplayNew
+    DisplayNew --> SelectAction
 
-    SelectCategory -->|Cognitive Skills| AssessCognitive
-    AssessCognitive --> RateProblem
-    RateProblem --> RateMemory
-    RateMemory --> RateAttention
-    RateAttention --> AddObs3
-    AddObs3 --> SaveCognitive
+    SelectAction -->|View Analysis| ViewAnalysis
+    ViewAnalysis --> ViewAssessments
+    ViewAssessments --> End1([End])
 
-    SelectCategory -->|Behavior| RecordBehavior
-    RecordBehavior --> SelectBehaviorType
-    SelectBehaviorType --> DescribeIncident
-    DescribeIncident --> AddAction
-    AddAction --> SaveBehavior
+    SelectAction -->|Regenerate Analysis| ClickRegen
+    ClickRegen --> BuildPrompt
 
-    SaveSocial --> UpdateProfile
-    SaveMotor --> UpdateProfile
-    SaveCognitive --> UpdateProfile
-    SaveBehavior --> UpdateProfile
+    SelectAction -->|Add Assessment| SelectDomain
+    SelectDomain --> EnterDescription
+    EnterDescription --> SelectDate
+    SelectDate --> SubmitAssessment
+    SubmitAssessment --> ValidateDomain
+    ValidateDomain -->|Invalid| ShowDomainError
+    ShowDomainError --> ViewError
+    ViewError --> ReEnter
+    ReEnter --> SubmitAssessment
 
-    UpdateProfile --> GenerateInsights
-    GenerateInsights --> CompareMilestones
-    CompareMilestones --> CheckConcerns
-    CheckConcerns -->|Yes| FlagConcerns
-    FlagConcerns --> NotifyParent
-    NotifyParent --> CreateActionPlan
-    CreateActionPlan --> End1([End])
-    CheckConcerns -->|No| NotifyParentUpdate
-    NotifyParentUpdate --> End2([End])
+    ValidateDomain -->|Valid| ValidateDesc
+    ValidateDesc -->|Invalid| ShowDescError
+    ShowDescError --> ViewError
+
+    ValidateDesc -->|Valid| ValidateDate
+    ValidateDate -->|Invalid| ShowDateError
+    ShowDateError --> ViewError
+
+    ValidateDate -->|Valid| InsertAssessment
+    InsertAssessment --> CommitDB
+    CommitDB --> QueryAssessments
 ```
 
 ### 4.2.5 Learning Style Analyzer Module
