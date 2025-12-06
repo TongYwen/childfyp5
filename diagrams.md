@@ -204,46 +204,45 @@ graph TB
 graph TB
     subgraph Actors
         Parent((Parent))
-        Admin((Admin))
-        System((System))
+        System((System/Gemini AI))
     end
 
     subgraph "Tutoring Recommendations System"
         ViewRecommendations[View Tutoring Recommendations]
-        RequestTutoring[Request Tutoring]
-        ProvideFeedback[Provide Feedback]
-        ImplementRecommendations[Implement Recommendations]
-        UpdateProgress[Update Implementation Progress]
-        GenerateRecommendations[Generate Recommendations]
-        AnalyzePerformance[Analyze Performance Data]
-        MatchLearningStyle[Match Learning Style]
-        SuggestActivities[Suggest Activities]
-        SuggestResources[Suggest Resources]
-        SuggestStrategies[Suggest Strategies]
-        CreatePlan[Create Personalized Plan]
-        TrackEffectiveness[Track Effectiveness]
+        ViewProducts[View Product Recommendations]
+        GenerateRecommendations[Generate/Regenerate Recommendations]
+        CheckCached[Check Cached Results]
+        FetchLearningData[Fetch Learning Style Analysis]
+        FetchPreschoolData[Fetch Preschool Analysis]
+        AnalyzeCombinedData[Analyze Combined Data]
+        IdentifyWeakAreas[Identify Potential Weak Areas]
+        RecommendFocus[Recommend Focus Areas]
+        SuggestActivities[Suggest Personalized Activities]
+        ExtractProducts[Extract Product Recommendations]
+        GenerateShoppingLinks[Generate Shopping Links]
+        StoreProducts[Store Products in Database]
+        CacheResults[Cache Recommendations]
     end
 
     Parent --> ViewRecommendations
-    Parent --> RequestTutoring
-    Parent --> ProvideFeedback
+    Parent --> ViewProducts
+    Parent --> GenerateRecommendations
 
-    Admin --> ViewRecommendations
-    Admin --> ImplementRecommendations
-    Admin --> UpdateProgress
+    System --> AnalyzeCombinedData
+    System --> ExtractProducts
 
-    System --> GenerateRecommendations
-    System --> AnalyzePerformance
-    System --> MatchLearningStyle
-
-    GenerateRecommendations -.<<include>>.-> AnalyzePerformance
-    GenerateRecommendations -.<<include>>.-> MatchLearningStyle
-    GenerateRecommendations -.<<include>>.-> SuggestActivities
-    GenerateRecommendations -.<<include>>.-> SuggestResources
-    GenerateRecommendations -.<<include>>.-> SuggestStrategies
-    GenerateRecommendations -.<<include>>.-> CreatePlan
-    ImplementRecommendations -.<<extend>>.-> TrackEffectiveness
-    UpdateProgress -.<<extend>>.-> ProvideFeedback
+    GenerateRecommendations -.<<include>>.-> CheckCached
+    GenerateRecommendations -.<<include>>.-> FetchLearningData
+    GenerateRecommendations -.<<include>>.-> FetchPreschoolData
+    GenerateRecommendations -.<<include>>.-> AnalyzeCombinedData
+    AnalyzeCombinedData -.<<include>>.-> IdentifyWeakAreas
+    AnalyzeCombinedData -.<<include>>.-> RecommendFocus
+    AnalyzeCombinedData -.<<include>>.-> SuggestActivities
+    AnalyzeCombinedData -.<<include>>.-> ExtractProducts
+    ExtractProducts -.<<include>>.-> GenerateShoppingLinks
+    ExtractProducts -.<<include>>.-> StoreProducts
+    GenerateRecommendations -.<<include>>.-> CacheResults
+    ViewProducts -.<<extend>>.-> GenerateRecommendations
 ```
 
 ---
@@ -253,116 +252,240 @@ graph TB
 ### 4.2.1 User Authentication Module
 ```mermaid
 flowchart TD
-    Start([Start]) --> EnterCredentials[Enter Username and Password]
-    EnterCredentials --> ValidateInput{Validate Input Format}
-    ValidateInput -->|Invalid| ShowError1[Show Input Error]
-    ShowError1 --> EnterCredentials
-    ValidateInput -->|Valid| CheckCredentials{Check Credentials in Database}
-    CheckCredentials -->|Invalid| IncrementAttempts[Increment Failed Attempts]
-    IncrementAttempts --> CheckAttempts{Attempts > 3?}
-    CheckAttempts -->|Yes| LockAccount[Lock Account]
-    LockAccount --> SendLockNotification[Send Lock Notification Email]
-    SendLockNotification --> End1([End])
-    CheckAttempts -->|No| ShowError2[Show Invalid Credentials Error]
-    ShowError2 --> EnterCredentials
-    CheckCredentials -->|Valid| CheckAccountStatus{Account Active?}
-    CheckAccountStatus -->|No| ShowInactive[Show Account Inactive Message]
-    ShowInactive --> End2([End])
-    CheckAccountStatus -->|Yes| GenerateToken[Generate Session Token]
-    GenerateToken --> LogActivity[Log Login Activity]
-    LogActivity --> RedirectDashboard[Redirect to Dashboard]
-    RedirectDashboard --> End3([End])
+    subgraph User["👤 USER (Parent/Admin Actions)"]
+        Start([Start])
+        EnterCred[Enter Username and Password]
+        ReEnter1[Re-enter Credentials]
+        ReEnter2[Re-enter Credentials]
+        ViewError[View Input Error]
+        ViewInvalidError[View Invalid Credentials Error]
+        ViewInactive[View Account Inactive Message]
+        ViewDashboard[Access Dashboard]
+    end
+
+    subgraph System["⚙️ SYSTEM (Automated Tasks)"]
+        ValidateInput{Validate Input Format}
+        ShowError1[Display Input Error]
+        CheckCreds{Check Credentials in Database}
+        IncrementAttempts[Increment Failed Attempts]
+        CheckAttempts{Attempts > 3?}
+        LockAccount[Lock Account in Database]
+        SendLockEmail[Send Lock Notification Email]
+        ShowError2[Display Invalid Credentials Error]
+        CheckStatus{Account Active?}
+        ShowInactive[Display Account Inactive Message]
+        GenerateToken[Generate Session Token]
+        LogActivity[Log Login Activity to Database]
+        Redirect[Redirect to Dashboard]
+    end
+
+    Start --> EnterCred
+    EnterCred --> ValidateInput
+    ValidateInput -->|Invalid| ShowError1
+    ShowError1 --> ViewError
+    ViewError --> ReEnter1
+    ReEnter1 --> ValidateInput
+
+    ValidateInput -->|Valid| CheckCreds
+    CheckCreds -->|Invalid| IncrementAttempts
+    IncrementAttempts --> CheckAttempts
+    CheckAttempts -->|Yes| LockAccount
+    LockAccount --> SendLockEmail
+    SendLockEmail --> End1([End - Account Locked])
+
+    CheckAttempts -->|No| ShowError2
+    ShowError2 --> ViewInvalidError
+    ViewInvalidError --> ReEnter2
+    ReEnter2 --> ValidateInput
+
+    CheckCreds -->|Valid| CheckStatus
+    CheckStatus -->|No| ShowInactive
+    ShowInactive --> ViewInactive
+    ViewInactive --> End2([End - Inactive Account])
+
+    CheckStatus -->|Yes| GenerateToken
+    GenerateToken --> LogActivity
+    LogActivity --> Redirect
+    Redirect --> ViewDashboard
+    ViewDashboard --> End3([End - Login Successful])
 ```
 
 ### 4.2.2 User Account Management Module (includes Inactive Parent Detection)
 ```mermaid
 flowchart TD
-    Start([Start]) --> SelectAction{Select Action}
-    SelectAction -->|Create Account| EnterDetails[Enter User Details]
-    SelectAction -->|Edit Profile| LoadProfile[Load User Profile]
-    SelectAction -->|Delete Account| ConfirmDelete{Confirm Deletion?}
-    SelectAction -->|Check Inactive Parents| StartDetection[Start Inactivity Detection]
+    subgraph User["👤 USER (Parent/Admin Actions)"]
+        Start([Start])
+        SelectAction{Select Action}
+        EnterDetails[Enter User Details]
+        ReEnterDetails[Re-enter Details]
+        EditFields[Edit Profile Fields]
+        ReEditFields[Re-edit Fields]
+        ConfirmDelete{Confirm Deletion?}
+        ForceDelete{Force Delete?}
+        ViewSuccess1[View Success Message]
+        ViewSuccess2[View Success Message]
+        ViewSuccess3[View Success Message]
+        ViewReport[View Inactivity Report]
+    end
 
-    EnterDetails --> ValidateDetails{Validate Details}
-    ValidateDetails -->|Invalid| ShowValidationError[Show Validation Error]
-    ShowValidationError --> EnterDetails
-    ValidateDetails -->|Valid| CheckDuplicate{Check Duplicate Email}
-    CheckDuplicate -->|Exists| ShowDuplicateError[Show Duplicate Error]
-    ShowDuplicateError --> EnterDetails
-    CheckDuplicate -->|Unique| CreateUser[Create User in Database]
-    CreateUser --> SendWelcomeEmail[Send Welcome Email]
-    SendWelcomeEmail --> Success1[Show Success Message]
-    Success1 --> End1([End])
+    subgraph System["⚙️ SYSTEM (Automated Tasks)"]
+        LoadProfile[Load User Profile from Database]
+        ValidateDetails{Validate Details}
+        ShowValidationError[Display Validation Error]
+        CheckDuplicate{Check Duplicate Email in Database}
+        ShowDuplicateError[Display Duplicate Error]
+        CreateUser[Create User in Database]
+        SendWelcomeEmail[Send Welcome Email]
+        ShowSuccess1[Display Success Message]
+        ValidateChanges{Validate Changes}
+        ShowError2[Display Error]
+        SaveChanges[Save Changes to Database]
+        UpdateTimestamp[Update Last Activity Timestamp]
+        ShowSuccess2[Display Success Message]
+        CheckDependencies{Has Dependencies?}
+        ShowWarning[Display Warning Message]
+        DeleteUser[Delete User from Database]
+        SendNotification[Send Deletion Notification]
+        ShowSuccess3[Display Success Message]
+        StartDetection[Start Inactivity Detection Job]
+        QueryDB[Query Parent Login History]
+        CheckLastLogin{Last Login > 30 Days?}
+        FlagInactive[Flag as Inactive Parent]
+        SendReminder[Send Activity Reminder Email]
+        LogInactivity[Log Inactivity Record]
+        CheckNext{More Parents?}
+        GenerateReport[Generate Inactivity Report]
+        DisplayReport[Display Report]
+    end
 
-    LoadProfile --> EditFields[Edit Profile Fields]
-    EditFields --> ValidateChanges{Validate Changes}
-    ValidateChanges -->|Invalid| ShowError2[Show Error]
-    ShowError2 --> EditFields
-    ValidateChanges -->|Valid| SaveChanges[Save Changes to Database]
-    SaveChanges --> UpdateTimestamp[Update Last Activity Timestamp]
-    UpdateTimestamp --> Success2[Show Success Message]
-    Success2 --> End2([End])
+    Start --> SelectAction
+    SelectAction -->|Create Account| EnterDetails
+    SelectAction -->|Edit Profile| LoadProfile
+    SelectAction -->|Delete Account| ConfirmDelete
+    SelectAction -->|Check Inactive Parents| StartDetection
+
+    EnterDetails --> ValidateDetails
+    ValidateDetails -->|Invalid| ShowValidationError
+    ShowValidationError --> ReEnterDetails
+    ReEnterDetails --> ValidateDetails
+    ValidateDetails -->|Valid| CheckDuplicate
+    CheckDuplicate -->|Exists| ShowDuplicateError
+    ShowDuplicateError --> ReEnterDetails
+    CheckDuplicate -->|Unique| CreateUser
+    CreateUser --> SendWelcomeEmail
+    SendWelcomeEmail --> ShowSuccess1
+    ShowSuccess1 --> ViewSuccess1
+    ViewSuccess1 --> End1([End])
+
+    LoadProfile --> EditFields
+    EditFields --> ValidateChanges
+    ValidateChanges -->|Invalid| ShowError2
+    ShowError2 --> ReEditFields
+    ReEditFields --> ValidateChanges
+    ValidateChanges -->|Valid| SaveChanges
+    SaveChanges --> UpdateTimestamp
+    UpdateTimestamp --> ShowSuccess2
+    ShowSuccess2 --> ViewSuccess2
+    ViewSuccess2 --> End2([End])
 
     ConfirmDelete -->|No| End3([End])
-    ConfirmDelete -->|Yes| CheckDependencies{Has Dependencies?}
-    CheckDependencies -->|Yes| ShowWarning[Show Warning Message]
-    ShowWarning --> ForceDelete{Force Delete?}
+    ConfirmDelete -->|Yes| CheckDependencies
+    CheckDependencies -->|Yes| ShowWarning
+    ShowWarning --> ForceDelete
     ForceDelete -->|No| End4([End])
     ForceDelete -->|Yes| DeleteUser
-    CheckDependencies -->|No| DeleteUser[Delete User from Database]
-    DeleteUser --> NotifyUser[Send Deletion Notification]
-    NotifyUser --> Success3[Show Success Message]
-    Success3 --> End5([End])
+    CheckDependencies -->|No| DeleteUser
+    DeleteUser --> SendNotification
+    SendNotification --> ShowSuccess3
+    ShowSuccess3 --> ViewSuccess3
+    ViewSuccess3 --> End5([End])
 
-    StartDetection --> QueryDatabase[Query Parent Login History]
-    QueryDatabase --> CheckLastLogin{Last Login > 30 Days?}
-    CheckLastLogin -->|No| CheckNext{More Parents?}
-    CheckLastLogin -->|Yes| FlagInactive[Flag as Inactive Parent]
-    FlagInactive --> SendReminder[Send Activity Reminder Email]
-    SendReminder --> LogInactivity[Log Inactivity Record]
+    StartDetection --> QueryDB
+    QueryDB --> CheckLastLogin
+    CheckLastLogin -->|No| CheckNext
+    CheckLastLogin -->|Yes| FlagInactive
+    FlagInactive --> SendReminder
+    SendReminder --> LogInactivity
     LogInactivity --> CheckNext
-    CheckNext -->|Yes| QueryDatabase
-    CheckNext -->|No| GenerateReport[Generate Inactivity Report]
-    GenerateReport --> DisplayReport[Display Report to Admin]
-    DisplayReport --> End6([End])
+    CheckNext -->|Yes| QueryDB
+    CheckNext -->|No| GenerateReport
+    GenerateReport --> DisplayReport
+    DisplayReport --> ViewReport
+    ViewReport --> End6([End])
 ```
 
 ### 4.2.3 Academic Progress Tracker Module
 ```mermaid
 flowchart TD
-    Start([Start]) --> SelectStudent[Select Student]
-    SelectStudent --> SelectAction{Select Action}
+    subgraph User["👤 USER (Parent/Admin Actions)"]
+        Start([Start])
+        SelectStudent[Select Student]
+        SelectAction{Select Action}
+        SelectSubject[Select Subject/Skill]
+        EnterGrade[Enter Grade/Score]
+        AddComments[Add Comments]
+        ReEnterGrade[Re-enter Grade/Score]
+        ViewProgress[View Progress Dashboard]
+        ExportOption{Export Data?}
+        SelectFormat[Select Export Format]
+        DownloadFile[Download File]
+        SelectPeriod[Select Time Period]
+        ReviewReport[Review Report]
+        SendReport{Send to Parent?}
+    end
 
-    SelectAction -->|Record Progress| SelectSubject[Select Subject/Skill]
-    SelectSubject --> EnterGrade[Enter Grade/Score]
-    EnterGrade --> AddComments[Add Comments]
-    AddComments --> ValidateData{Validate Data}
-    ValidateData -->|Invalid| ShowError1[Show Error]
-    ShowError1 --> EnterGrade
-    ValidateData -->|Valid| SaveProgress[Save Progress Data]
-    SaveProgress --> UpdateAnalytics[Update Analytics]
-    UpdateAnalytics --> CalculateTrends[Calculate Performance Trends]
-    CalculateTrends --> CheckSignificant{Significant Change?}
-    CheckSignificant -->|Yes| NotifyParent1[Notify Parent]
+    subgraph System["⚙️ SYSTEM (Automated Tasks)"]
+        ValidateData{Validate Data}
+        ShowError1[Display Error]
+        SaveProgress[Save Progress Data to Database]
+        UpdateAnalytics[Update Analytics]
+        CalculateTrends[Calculate Performance Trends]
+        CheckSignificant{Significant Change?}
+        NotifyParent1[Send Notification to Parent]
+        LoadProgressData[Load Progress Data from Database]
+        GenerateCharts[Generate Progress Charts]
+        DisplayProgress[Display Progress Dashboard]
+        GenerateExport[Generate Export File]
+        AnalyzeData[Analyze Progress Data]
+        GenerateReport[Generate Detailed Report]
+        EmailReport[Email Report to Parent]
+    end
+
+    Start --> SelectStudent
+    SelectStudent --> SelectAction
+
+    SelectAction -->|Record Progress| SelectSubject
+    SelectSubject --> EnterGrade
+    EnterGrade --> AddComments
+    AddComments --> ValidateData
+    ValidateData -->|Invalid| ShowError1
+    ShowError1 --> ReEnterGrade
+    ReEnterGrade --> AddComments
+    ValidateData -->|Valid| SaveProgress
+    SaveProgress --> UpdateAnalytics
+    UpdateAnalytics --> CalculateTrends
+    CalculateTrends --> CheckSignificant
+    CheckSignificant -->|Yes| NotifyParent1
     CheckSignificant -->|No| End1([End])
     NotifyParent1 --> End1
 
-    SelectAction -->|View Progress| LoadProgressData[Load Progress Data]
-    LoadProgressData --> GenerateCharts[Generate Progress Charts]
-    GenerateCharts --> DisplayProgress[Display Progress Dashboard]
-    DisplayProgress --> ExportOption{Export Data?}
-    ExportOption -->|Yes| SelectFormat[Select Export Format]
-    SelectFormat --> GenerateExport[Generate Export File]
-    GenerateExport --> DownloadFile[Download File]
+    SelectAction -->|View Progress| LoadProgressData
+    LoadProgressData --> GenerateCharts
+    GenerateCharts --> DisplayProgress
+    DisplayProgress --> ViewProgress
+    ViewProgress --> ExportOption
+    ExportOption -->|Yes| SelectFormat
+    SelectFormat --> GenerateExport
+    GenerateExport --> DownloadFile
     DownloadFile --> End2([End])
     ExportOption -->|No| End3([End])
 
-    SelectAction -->|Generate Report| SelectPeriod[Select Time Period]
-    SelectPeriod --> AnalyzeData[Analyze Progress Data]
-    AnalyzeData --> GenerateReport[Generate Detailed Report]
-    GenerateReport --> ReviewReport[Review Report]
-    ReviewReport --> SendReport{Send to Parent?}
-    SendReport -->|Yes| EmailReport[Email Report to Parent]
+    SelectAction -->|Generate Report| SelectPeriod
+    SelectPeriod --> AnalyzeData
+    AnalyzeData --> GenerateReport
+    GenerateReport --> ReviewReport
+    ReviewReport --> SendReport
+    SendReport -->|Yes| EmailReport
     EmailReport --> End4([End])
     SendReport -->|No| End5([End])
 ```
@@ -370,140 +493,291 @@ flowchart TD
 ### 4.2.4 Preschool Performance Tracker Module
 ```mermaid
 flowchart TD
-    Start([Start]) --> SelectStudent[Select Student]
-    SelectStudent --> SelectCategory{Select Performance Category}
+    subgraph User["👤 USER (Parent/Admin Actions)"]
+        Start([Start])
+        SelectStudent[Select Student]
+        SelectCategory{Select Performance Category}
+        AssessSocial[Assess Social Interaction]
+        RateSocial[Rate Social Behaviors]
+        AddObs1[Add Observations]
+        AssessMotor[Assess Motor Development]
+        RateFineMotor[Rate Fine Motor Skills]
+        RateGrossMotor[Rate Gross Motor Skills]
+        AddObs2[Add Observations]
+        AssessCognitive[Assess Cognitive Development]
+        RateProblem[Rate Problem Solving]
+        RateMemory[Rate Memory]
+        RateAttention[Rate Attention Span]
+        AddObs3[Add Observations]
+        RecordBehavior[Record Behavior Incident]
+        SelectBehaviorType[Select Behavior Type]
+        DescribeIncident[Describe Incident]
+        AddAction[Add Action Taken]
+    end
 
-    SelectCategory -->|Social Skills| AssessSocial[Assess Social Interaction]
-    AssessSocial --> RateSocial[Rate Social Behaviors]
-    RateSocial --> AddObservations1[Add Observations]
-    AddObservations1 --> SaveSocial
+    subgraph System["⚙️ SYSTEM (Automated Tasks)"]
+        SaveSocial[Save Social Assessment to Database]
+        SaveMotor[Save Motor Assessment to Database]
+        SaveCognitive[Save Cognitive Assessment to Database]
+        SaveBehavior[Save Behavior Record to Database]
+        UpdateProfile[Update Performance Profile]
+        GenerateInsights[Generate AI Insights]
+        CompareMilestones[Compare to Developmental Milestones]
+        CheckConcerns{Identify Concerns?}
+        FlagConcerns[Flag for Review]
+        NotifyParent[Send Notification to Parent and Admin]
+        CreateActionPlan[Generate Action Plan]
+        NotifyParentUpdate[Send Update to Parent]
+    end
 
-    SelectCategory -->|Motor Skills| AssessMotor[Assess Motor Development]
-    AssessMotor --> RateFineMotor[Rate Fine Motor Skills]
-    RateFineMotor --> RateGrossMotor[Rate Gross Motor Skills]
-    RateGrossMotor --> AddObservations2[Add Observations]
-    AddObservations2 --> SaveMotor
+    Start --> SelectStudent
+    SelectStudent --> SelectCategory
 
-    SelectCategory -->|Cognitive Skills| AssessCognitive[Assess Cognitive Development]
-    AssessCognitive --> RateProblemSolving[Rate Problem Solving]
-    RateProblemSolving --> RateMemory[Rate Memory]
-    RateMemory --> RateAttention[Rate Attention Span]
-    RateAttention --> AddObservations3[Add Observations]
-    AddObservations3 --> SaveCognitive
+    SelectCategory -->|Social Skills| AssessSocial
+    AssessSocial --> RateSocial
+    RateSocial --> AddObs1
+    AddObs1 --> SaveSocial
 
-    SelectCategory -->|Behavior| RecordBehavior[Record Behavior Incident]
-    RecordBehavior --> SelectBehaviorType[Select Behavior Type]
-    SelectBehaviorType --> DescribeIncident[Describe Incident]
-    DescribeIncident --> AddAction[Add Action Taken]
+    SelectCategory -->|Motor Skills| AssessMotor
+    AssessMotor --> RateFineMotor
+    RateFineMotor --> RateGrossMotor
+    RateGrossMotor --> AddObs2
+    AddObs2 --> SaveMotor
+
+    SelectCategory -->|Cognitive Skills| AssessCognitive
+    AssessCognitive --> RateProblem
+    RateProblem --> RateMemory
+    RateMemory --> RateAttention
+    RateAttention --> AddObs3
+    AddObs3 --> SaveCognitive
+
+    SelectCategory -->|Behavior| RecordBehavior
+    RecordBehavior --> SelectBehaviorType
+    SelectBehaviorType --> DescribeIncident
+    DescribeIncident --> AddAction
     AddAction --> SaveBehavior
 
-    SaveSocial[Save Social Assessment] --> UpdateProfile
-    SaveMotor[Save Motor Assessment] --> UpdateProfile
-    SaveCognitive[Save Cognitive Assessment] --> UpdateProfile
-    SaveBehavior[Save Behavior Record] --> UpdateProfile
+    SaveSocial --> UpdateProfile
+    SaveMotor --> UpdateProfile
+    SaveCognitive --> UpdateProfile
+    SaveBehavior --> UpdateProfile
 
-    UpdateProfile[Update Performance Profile] --> GenerateInsights[Generate Insights]
-    GenerateInsights --> CompareMilestones[Compare to Developmental Milestones]
-    CompareMilestones --> CheckConcerns{Identify Concerns?}
-    CheckConcerns -->|Yes| FlagConcerns[Flag for Review]
-    FlagConcerns --> NotifyParent[Notify Parent and Admin]
-    NotifyParent --> CreateActionPlan[Create Action Plan]
+    UpdateProfile --> GenerateInsights
+    GenerateInsights --> CompareMilestones
+    CompareMilestones --> CheckConcerns
+    CheckConcerns -->|Yes| FlagConcerns
+    FlagConcerns --> NotifyParent
+    NotifyParent --> CreateActionPlan
     CreateActionPlan --> End1([End])
-    CheckConcerns -->|No| NotifyParentUpdate[Send Update to Parent]
+    CheckConcerns -->|No| NotifyParentUpdate
     NotifyParentUpdate --> End2([End])
 ```
 
 ### 4.2.5 Learning Style Analyzer Module
 ```mermaid
 flowchart TD
-    Start([Start]) --> LoadPage[Parent Navigates to Learning Style Page]
-    LoadPage --> LoadData[Load Observations, Questionnaires, and Cached Analysis]
-    LoadData --> SelectAction{Parent Selects Action}
+    subgraph Parent["👤 PARENT (User Actions)"]
+        Start([Start])
+        Navigate[Navigate to Learning Style Page]
+        SelectAction{Select Action}
+        EnterObs[Enter Observation Text]
+        SubmitObs[Submit Observation]
+        ViewQuest[View Questionnaire Questions]
+        AnswerQuest[Answer Questions Scale 1-5]
+        SubmitQuest[Submit Questionnaire]
+        ClickGenerate[Click Generate/Regenerate Analysis]
+        ViewCached[View Cached Analysis]
+        ViewAnalysis[View Learning Style Analysis]
+    end
 
-    SelectAction -->|Add Observation| EnterObservation[Enter Observation Text]
-    EnterObservation --> SaveObservation[Save to learning_observations Table]
-    SaveObservation --> RedirectPage[Redirect to Learning Style Page]
-    RedirectPage --> LoadPage
+    subgraph System["⚙️ SYSTEM (Automated Tasks)"]
+        LoadData[Load Observations, Questionnaires, Cached Analysis]
+        SaveObs[Save to learning_observations Table]
+        Redirect1[Redirect to Page]
+        LoadQuestions[Load Questions from test_questions Table]
+        SaveAnswers[Save to test_answers Table]
+        Redirect2[Redirect to Page]
+        CheckData{Has Observations or Answers?}
+        ShowNoData[Display 'No Data Available' Message]
+        CreatePayload[Create JSON Data Payload]
+        CheckCached{Compare with Cached Data}
+        DisplayCached[Display Cached Analysis]
+        PrepareObs[Format Observations with Dates]
+        GroupAnswers[Group Answers by VARK Category]
+        BuildPrompt[Build AI Prompt]
+        SendGemini[Send to Gemini AI]
+        AnalyzeVARK[AI Analyzes VARK Data]
+        GenerateRatings[AI Generates Ratings]
+        IdentifyStyle[AI Identifies Main Style]
+        GenerateTips[AI Generates 3 Tips]
+        FormatHTML[Format as HTML]
+        DeleteOld[Delete Old ai_results]
+        InsertNew[Insert New ai_results]
+        CommitDB[Commit to Database]
+        DisplayNew[Display Learning Style Analysis]
+        HandleError{Check Error Type}
+        ShowTokenError[Display Token Error]
+        ShowError[Display Error Message]
+    end
 
-    SelectAction -->|Take Questionnaire| ViewQuestions[View VARK Questionnaire Questions]
-    ViewQuestions --> AnswerQuestions[Parent Answers Questions Scale 1-5]
-    AnswerQuestions --> SubmitAnswers[Submit Questionnaire Answers]
-    SubmitAnswers --> SaveAnswers[Save to test_answers Table]
-    SaveAnswers --> RedirectPage
+    Start --> Navigate
+    Navigate --> LoadData
+    LoadData --> SelectAction
 
-    SelectAction -->|Generate Analysis| CheckDataExists{Has Observations or Answers?}
-    CheckDataExists -->|No| ShowNoData[Show 'No Data Available' Message]
+    SelectAction -->|Add Observation| EnterObs
+    EnterObs --> SubmitObs
+    SubmitObs --> SaveObs
+    SaveObs --> Redirect1
+    Redirect1 --> LoadData
+
+    SelectAction -->|Take Questionnaire| LoadQuestions
+    LoadQuestions --> ViewQuest
+    ViewQuest --> AnswerQuest
+    AnswerQuest --> SubmitQuest
+    SubmitQuest --> SaveAnswers
+    SaveAnswers --> Redirect2
+    Redirect2 --> LoadData
+
+    SelectAction -->|Generate Analysis| ClickGenerate
+    ClickGenerate --> CheckData
+    CheckData -->|No| ShowNoData
     ShowNoData --> End1([End])
 
-    CheckDataExists -->|Yes| CreateDataPayload[Create JSON Data Payload]
-    CreateDataPayload --> CheckCached{Compare with Cached Data}
-    CheckCached -->|Cached & No Regen| DisplayCached[Display Cached Analysis]
-    DisplayCached --> End2([End])
+    CheckData -->|Yes| CreatePayload
+    CreatePayload --> CheckCached
+    CheckCached -->|Cached & No Regen| DisplayCached
+    DisplayCached --> ViewCached
+    ViewCached --> End2([End])
 
-    CheckCached -->|Not Cached or Regen| PrepareObservations[Format Observations with Dates]
-    PrepareObservations --> GroupAnswers[Group Answers by VARK Category]
-    GroupAnswers --> BuildPrompt[Build AI Prompt]
-    BuildPrompt --> SendToGemini[Send to Gemini AI]
+    CheckCached -->|Not Cached or Regen| PrepareObs
+    PrepareObs --> GroupAnswers
+    GroupAnswers --> BuildPrompt
+    BuildPrompt --> SendGemini
+    SendGemini --> AnalyzeVARK
+    AnalyzeVARK --> GenerateRatings
+    GenerateRatings --> IdentifyStyle
+    IdentifyStyle --> GenerateTips
+    GenerateTips --> FormatHTML
+    FormatHTML --> DeleteOld
+    DeleteOld --> InsertNew
+    InsertNew --> CommitDB
+    CommitDB --> DisplayNew
+    DisplayNew --> ViewAnalysis
+    ViewAnalysis --> End3([End])
 
-    SendToGemini --> GeminiAnalyze[AI Analyzes VARK Data]
-    GeminiAnalyze --> GenerateRatings[Generate Visual/Auditory/Reading/Kinesthetic Ratings]
-    GenerateRatings --> IdentifyMainStyle[Identify Main Learning Style]
-    IdentifyMainStyle --> GenerateTips[Generate 3 Tips for Parents]
-    GenerateTips --> FormatHTML[Format as HTML]
-
-    FormatHTML --> DeleteOldResult[Delete Old ai_results Entry]
-    DeleteOldResult --> InsertNewResult[Insert New ai_results Entry]
-    InsertNewResult --> CommitDB[Commit to Database]
-    CommitDB --> DisplayAnalysis[Display Learning Style Analysis]
-    DisplayAnalysis --> End3([End])
-
-    SendToGemini -->|Error| HandleError{Check Error Type}
-    HandleError -->|Token Limit| ReturnTokenError[Return Token Limit Error]
-    ReturnTokenError --> End4([End])
-    HandleError -->|Other Error| ShowError[Show Error Message]
+    SendGemini -.->|Error| HandleError
+    HandleError -->|Token Limit| ShowTokenError
+    ShowTokenError --> End4([End])
+    HandleError -->|Other| ShowError
     ShowError --> End5([End])
 ```
 
 ### 4.2.6 Tutoring Recommendations Module
 ```mermaid
 flowchart TD
-    Start([Start]) --> TriggerEvent{Trigger Event}
+    subgraph Parent["👤 PARENT (User Actions)"]
+        Start([Start])
+        Navigate[Navigate to Tutoring Page]
+        ClickGenerate[Click Generate/Regenerate Button]
+        ViewCached[View Cached Recommendations + Products]
+        ViewNew[View New Recommendations + Products]
+        ViewNoData[View 'Run Assessments First' Message]
+    end
 
-    TriggerEvent -->|New Assessment| LoadLearningStyle
-    TriggerEvent -->|Poor Performance| LoadPerformanceData
-    TriggerEvent -->|Manual Request| LoadAllData
+    subgraph System["⚙️ SYSTEM (Automated Tasks)"]
+        LoadChild[Load Child Data]
+        FetchAI[Fetch AI Results: Learning Style + Preschool]
+        CheckData{Has Learning or Preschool Data?}
+        ShowNoData[Display 'No AI Analysis Available' Message]
+        FetchLearning[Fetch Learning Style Analysis]
+        FetchPreschool[Fetch Preschool Analysis]
+        CreatePayload[Create JSON Data Payload]
+        CheckCached[Fetch Cached Tutoring Result]
+        CompareData{Data Changed or Regen?}
+        FetchProducts[Fetch Product Recommendations from DB]
+        DisplayCached[Display Cached Recommendations + Products]
+        BuildPrompt[Build AI Prompt with Child Profile]
+        AddLearning[Add Learning Style to Prompt]
+        AddPreschool[Add Preschool Data to Prompt]
+        DefineOutput[Define 4 Output Sections]
+        SendGemini[Send to Gemini AI]
+        AIAnalyze[AI Analyzes Combined Data]
+        IdentifyWeak[AI Identifies Weak Areas]
+        RecommendFocus[AI Recommends Focus Areas]
+        SuggestActivities[AI Suggests Activities]
+        GenerateProducts[AI Generates Product Recommendations]
+        FormatHTML[AI Formats as HTML]
+        ExtractProducts[Extract Product Tags with Regex]
+        ParseFields[Parse Product Fields]
+        GenerateLinks[Generate Shopping Links]
+        CalcPrice[Calculate Price Range]
+        InsertProducts[Insert into product_recommendations]
+        RemoveTags[Remove Product Tags from HTML]
+        SaveOrUpdate{Cached Result Exists?}
+        UpdateCache[UPDATE ai_results]
+        InsertCache[INSERT INTO ai_results]
+        CommitDB[Commit to Database]
+        FetchProductsNew[Fetch Top 10 Products]
+        DisplayNew[Display New Recommendations + Products]
+        HandleError{Check Error Type}
+        ShowTokenError[Display Token Error]
+        ShowError[Display Error Message]
+    end
 
-    LoadLearningStyle[Load Learning Style Profile] --> CollectData
-    LoadPerformanceData[Load Performance Data] --> CollectData
-    LoadAllData[Load All Student Data] --> CollectData
+    Start --> Navigate
+    Navigate --> LoadChild
+    LoadChild --> FetchAI
+    FetchAI --> CheckData
 
-    CollectData[Collect All Relevant Data] --> AnalyzeProgress[Analyze Academic Progress]
-    AnalyzeProgress --> AnalyzePerformance[Analyze Performance Metrics]
-    AnalyzePerformance --> IdentifyWeaknesses[Identify Weak Areas]
-    IdentifyWeaknesses --> IdentifyStrengths[Identify Strengths]
-    IdentifyStrengths --> MatchLearningStyle[Match to Learning Style]
+    CheckData -->|No| ShowNoData
+    ShowNoData --> ViewNoData
+    ViewNoData --> End1([End])
 
-    MatchLearningStyle --> GenerateActivities[Generate Activity Recommendations]
-    GenerateActivities --> GenerateResources[Generate Resource Recommendations]
-    GenerateResources --> GenerateStrategies[Generate Teaching Strategies]
+    CheckData -->|Yes| FetchLearning
+    FetchLearning --> FetchPreschool
+    FetchPreschool --> CreatePayload
+    CreatePayload --> CheckCached
+    CheckCached --> CompareData
 
-    GenerateStrategies --> PrioritizeRecommendations[Prioritize by Impact]
-    PrioritizeRecommendations --> CreatePlan[Create Personalized Tutoring Plan]
-    CreatePlan --> ReviewPlan{Admin Review Required?}
+    CompareData -->|Cached & Same| FetchProducts
+    FetchProducts --> DisplayCached
+    DisplayCached --> ViewCached
+    ViewCached --> End2([End])
 
-    ReviewPlan -->|Yes| SendToAdmin[Send to Admin for Review]
-    SendToAdmin --> AdminApproval{Admin Approves?}
-    AdminApproval -->|No| AdjustRecommendations[Admin Adjusts Recommendations]
-    AdjustRecommendations --> CreatePlan
-    AdminApproval -->|Yes| PublishPlan
+    CompareData -->|Changed or Regen| ClickGenerate
+    ClickGenerate --> BuildPrompt
+    BuildPrompt --> AddLearning
+    AddLearning --> AddPreschool
+    AddPreschool --> DefineOutput
+    DefineOutput --> SendGemini
+    SendGemini --> AIAnalyze
+    AIAnalyze --> IdentifyWeak
+    IdentifyWeak --> RecommendFocus
+    RecommendFocus --> SuggestActivities
+    SuggestActivities --> GenerateProducts
+    GenerateProducts --> FormatHTML
+    FormatHTML --> ExtractProducts
+    ExtractProducts --> ParseFields
+    ParseFields --> GenerateLinks
+    GenerateLinks --> CalcPrice
+    CalcPrice --> InsertProducts
+    InsertProducts --> RemoveTags
+    RemoveTags --> SaveOrUpdate
 
-    ReviewPlan -->|No| PublishPlan[Publish Recommendations]
-    PublishPlan --> NotifyParent[Notify Parent]
-    NotifyParent --> NotifyAdmin[Notify Admin]
-    NotifyAdmin --> DisplayRecommendations[Display in Dashboard]
-    DisplayRecommendations --> TrackImplementation[Track Implementation]
-    TrackImplementation --> ScheduleFollowUp[Schedule Follow-up Review]
-    ScheduleFollowUp --> End([End])
+    SaveOrUpdate -->|Yes| UpdateCache
+    SaveOrUpdate -->|No| InsertCache
+    UpdateCache --> CommitDB
+    InsertCache --> CommitDB
+    CommitDB --> FetchProductsNew
+    FetchProductsNew --> DisplayNew
+    DisplayNew --> ViewNew
+    ViewNew --> End3([End])
+
+    SendGemini -.->|Error| HandleError
+    HandleError -->|Token Limit| ShowTokenError
+    ShowTokenError --> End4([End])
+    HandleError -->|Other| ShowError
+    ShowError --> End5([End])
 ```
 
 ---
@@ -939,137 +1213,96 @@ sequenceDiagram
 ### 4.3.6 Tutoring Recommendations Module
 ```mermaid
 sequenceDiagram
-    actor System
-    participant Service as Recommendation Service
-    participant Aggregator as Data Aggregator
-    participant AI as Recommendation AI
-    participant DB as Database
-    participant Notification as Notification Service
-    participant UI as Admin UI
-    participant Controller as Tutoring Controller
-    actor Admin
     actor Parent
+    participant UI as Parent UI
+    participant Flask as Flask App /dashboard/tutoring
+    participant DB as MySQL Database
+    participant Gemini as Gemini AI API
+    participant ExtractFunc as extract_products_from_response()
+    participant LinkGen as generate_product_links()
 
-    Note over System,Parent: Triggered by learning style update or poor performance
+    Parent->>UI: Navigate to Tutoring page
+    UI->>Flask: GET /dashboard/tutoring
+    Flask->>DB: SELECT * FROM children WHERE id={child_id}
+    DB-->>Flask: child data
+    Flask->>DB: SELECT * FROM ai_results WHERE module IN ('learning', 'preschool')
+    DB-->>Flask: learning_result, preschool_result
+    Flask->>DB: SELECT * FROM ai_results WHERE module='tutoring'
+    DB-->>Flask: cached tutoring result
 
-    System->>Service: triggerRecommendations(studentId, trigger)
-    Service->>Aggregator: collectStudentData(studentId)
-    Aggregator->>DB: fetchLearningStyle(studentId)
-    DB-->>Aggregator: learning style profile
-    Aggregator->>DB: fetchAcademicProgress(studentId)
-    DB-->>Aggregator: progress records
-    Aggregator->>DB: fetchPerformanceData(studentId)
-    DB-->>Aggregator: performance assessments
-    Aggregator->>DB: fetchBehaviorData(studentId)
-    DB-->>Aggregator: behavior records
-    Aggregator-->>Service: {learningStyle, progress, performance, behavior}
+    alt No Learning or Preschool Data
+        Flask-->>UI: Render with "No AI analysis data available" message
+        UI-->>Parent: Show message to run assessments first
+    else Has Data
+        Flask->>Flask: Create data_payload JSON {learning, preschool}
+        Flask->>Flask: Compare cached data with current payload
 
-    Service->>AI: analyzeStudentNeeds(allData)
-    AI->>AI: identifyWeakAreas()
-    AI->>AI: identifyStrengths()
-    AI->>AI: assessLearningGaps()
-    AI->>AI: considerLearningStyle()
-    AI-->>Service: {weakAreas, strengths, gaps, priorities}
+        alt Cached and Same Data
+            Flask->>DB: SELECT * FROM product_recommendations WHERE child_id={child_id}
+            DB-->>Flask: products list
+            Flask-->>UI: Render with cached recommendations + products
+            UI-->>Parent: Display cached tutoring recommendations
+        else Data Changed or Regen=1
+            Flask->>Flask: Build AI prompt with child profile
+            Flask->>Flask: Add preschool analysis to prompt (for context)
+            Flask->>Flask: Add learning style analysis to prompt (for context)
+            Flask->>Flask: Define 4 output sections (weak areas, focus areas, activities, products)
+            Flask->>Flask: Specify product format: [PRODUCT_START]...[PRODUCT_END]
 
-    Service->>AI: generateRecommendations(needs, learningStyle)
+            Flask->>Gemini: generate_content(prompt)
+            Gemini->>Gemini: Analyze learning style + preschool data
+            Gemini->>Gemini: Identify potential weak areas
+            Gemini->>Gemini: Recommend focus areas for tutoring
+            Gemini->>Gemini: Suggest personalized activities
+            Gemini->>Gemini: Generate 3-5 product recommendations
+            Gemini->>Gemini: Format products with tags [PRODUCT_START]...[PRODUCT_END]
+            Gemini->>Gemini: Format as HTML
+            Gemini-->>Flask: Return full HTML response with product tags
 
-    par Activity Recommendations
-        AI->>AI: matchActivitiesToStyle()
-        AI->>AI: alignWithWeakAreas()
-        AI->>AI: ensureEngagement()
-        AI->>DB: fetchActivityLibrary(filters)
-        DB-->>AI: matching activities
-        AI->>AI: rankActivities()
-    and Resource Recommendations
-        AI->>AI: matchResourcesToStyle()
-        AI->>AI: selectAppropriateLevel()
-        AI->>DB: fetchResourceLibrary(filters)
-        DB-->>AI: matching resources
-        AI->>AI: rankResources()
-    and Strategy Recommendations
-        AI->>AI: matchStrategiesToStyle()
-        AI->>AI: considerHomeContext()
-        AI->>AI: ensurePracticality()
-        AI->>AI: rankStrategies()
+            Flask->>ExtractFunc: extract_products_from_response(response, child_id, cursor)
+            ExtractFunc->>ExtractFunc: Regex match [PRODUCT_START]...[PRODUCT_END]
+            ExtractFunc->>ExtractFunc: Parse product fields (name, type, category, subject, etc.)
+
+            loop For each product
+                ExtractFunc->>LinkGen: generate_product_links(keywords, type)
+                LinkGen->>LinkGen: Build Amazon search URL
+                LinkGen->>LinkGen: Build Shopee search URL
+                LinkGen->>LinkGen: Build Lazada search URL
+                LinkGen-->>ExtractFunc: {amazon_url, shopee_url, lazada_url}
+
+                ExtractFunc->>ExtractFunc: Calculate price_range (budget/mid_range/premium)
+                ExtractFunc->>DB: INSERT INTO product_recommendations
+                DB-->>ExtractFunc: Success
+            end
+
+            ExtractFunc->>ExtractFunc: Remove product tags from HTML
+            ExtractFunc-->>Flask: {cleaned_html, products}
+
+            alt Cached Result Exists
+                Flask->>DB: UPDATE ai_results SET data, result, updated_at
+                DB-->>Flask: Updated
+            else No Cached Result
+                Flask->>DB: INSERT INTO ai_results (child_id, module='tutoring', data, result)
+                DB-->>Flask: Inserted
+            end
+
+            Flask->>DB: Commit transaction
+            Flask->>DB: SELECT * FROM product_recommendations WHERE child_id={child_id} LIMIT 10
+            DB-->>Flask: products list
+            Flask-->>UI: Return JSON {tutoring_summary, last_generated, products}
+            UI->>UI: Update page with new recommendations
+            UI-->>Parent: Display recommendations with product cards + shopping links
+        end
     end
 
-    AI-->>Service: {activities, resources, strategies, reasoning}
-
-    Service->>AI: createTutoringPlan(recommendations, studentProfile)
-    AI->>AI: organizePriorities()
-    AI->>AI: sequenceActivities()
-    AI->>AI: defineGoals()
-    AI->>AI: estimateDuration()
-    AI->>AI: createMilestones()
-    AI-->>Service: personalizedTutoringPlan
-
-    Service->>DB: saveTutoringPlan(studentId, plan)
-    DB-->>Service: planId
-
-    Service->>Notification: notifyAdmin(adminId, plan)
-    Notification->>Email: sendAdminNotification(admin, planSummary)
-    Email-->>Admin: New tutoring plan notification
-
-    Service->>Notification: notifyParent(parentId, plan)
-    Notification->>Email: sendParentNotification(parent, planSummary)
-    Email-->>Parent: New tutoring recommendations
-
-    Service-->>System: recommendations generated
-
-    Note over Admin,Parent: Admin Reviews and Implements
-
-    Admin->>UI: View recommendations
-    UI->>Controller: GET /tutoring/{planId}
-    Controller->>Service: getTutoringPlan(planId)
-    Service->>DB: fetchPlan(planId)
-    DB-->>Service: plan details
-    Service-->>Controller: plan
-    Controller-->>UI: 200 OK {plan}
-    UI-->>Admin: Display detailed plan
-
-    Admin->>UI: Mark activity as implemented
-    UI->>Controller: POST /tutoring/{planId}/implement {activityId, status}
-    Controller->>Service: updateImplementation(planId, activityId, status)
-    Service->>DB: updateActivityStatus(planId, activityId, status)
-    DB-->>Service: updated
-    Service->>DB: trackProgress(planId)
-    Service-->>Controller: updated plan
-    Controller-->>UI: 200 OK
-    UI-->>Admin: Status updated
-
-    Admin->>UI: Add implementation feedback
-    UI->>Controller: POST /tutoring/{planId}/feedback {activityId, feedback}
-    Controller->>Service: recordFeedback(planId, activityId, feedback)
-    Service->>DB: insertFeedback(feedback)
-    Service->>AI: analyzeFeedback(feedback)
-    AI->>AI: assessEffectiveness()
-    AI-->>Service: adjustedRecommendations
-    Service->>DB: updatePlan(planId, adjustments)
-    Service-->>Controller: updated
-    Controller-->>UI: 200 OK
-    UI-->>Admin: Feedback recorded
-
-    Note over System,Parent: Periodic Review
-
-    System->>Service: scheduledReview(planId)
-    Service->>DB: fetchPlanProgress(planId)
-    DB-->>Service: implementation data
-    Service->>AI: evaluatePlanEffectiveness(progress, studentData)
-    AI->>AI: measureImprovement()
-    AI->>AI: assessEngagement()
-    AI-->>Service: {effectiveness, recommendations}
-
-    alt Plan effective
-        Service->>Notification: sendSuccessReport(parent, admin)
-        Notification-->>Parent: Progress update
-        Notification-->>Admin: Effectiveness report
-    else Plan needs adjustment
-        Service->>AI: adjustPlan(currentPlan, effectiveness)
-        AI-->>Service: revisedPlan
-        Service->>DB: updatePlan(planId, revisedPlan)
-        Service->>Notification: sendPlanUpdate(parent, admin)
-        Notification-->>Parent: Updated recommendations
-        Notification-->>Admin: Plan revision notice
+    alt Error - Token Limit
+        Gemini-->>Flask: Token limit error
+        Flask-->>UI: Return {error: "token_limit"}
+        UI-->>Parent: Show token limit message
+    else Error - Other
+        Gemini-->>Flask: Other error
+        Flask-->>UI: Return error message
+        UI-->>Parent: Show error
     end
 ```
 
