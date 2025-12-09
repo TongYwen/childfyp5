@@ -1,3 +1,56 @@
+"""
+================================================================================
+PRESCHOOL CHILD DEVELOPMENT TRACKING SYSTEM
+================================================================================
+Main application file containing all routes and business logic.
+
+MODULE STRUCTURE:
+1. Imports & Configuration (Lines 1-68)
+2. Database Helper (Lines 72-79)
+3. Product Recommendation Helpers (Lines 84-225)
+4. User Model & Authentication Setup (Lines 230-297)
+5. Helper & Validation Functions (Lines 301-461)
+
+AUTHENTICATION MODULE (Lines 468-1255):
+6. Authentication Routes - Registration, Login, Logout
+7. Email Functions - Password reset, inactivity warnings, deletion notifications
+8. Scheduled Tasks - Automated cleanup and deletion
+9. Password Reset Routes
+
+PARENT/USER DASHBOARD MODULE (Lines 1260-2722):
+10. Dashboard & Child Selection
+11. Children Management
+12. Profile Management
+13. Academic Progress Tracking
+14. Preschool Developmental Tracker (4 domains)
+15. Learning Style Analysis (VARK)
+16. Tutoring Recommendations
+
+AI-POWERED INSIGHTS MODULE (Lines 2953-3461):
+17. AI Academic Insights
+18. Weekly Learning Plan Generator
+19. Educational Resources Hub
+
+MINI-GAMES MODULE (Lines 3462-3630):
+20. Mini-Games - Counting, Vocabulary, Spelling
+
+ADMIN MODULE (Lines 3635-4551):
+21. Admin Dashboard & User Management
+22. Admin Resources Management
+23. Admin Mini-Games Management
+24. Admin Test/Questionnaire Management
+25. Admin Inactive Users Management
+
+INITIALIZATION (Lines 4556-4574):
+26. App Initialization & Scheduler Setup
+
+TECHNOLOGIES: Flask, MySQL, Google Gemini AI, Flask-Login, APScheduler
+================================================================================
+"""
+
+# ================================================================================
+# IMPORTS & DEPENDENCIES
+# ================================================================================
 from flask import (
     Flask, render_template, request, redirect,
     url_for, flash, session, jsonify, has_request_context
@@ -22,16 +75,16 @@ import json
 from dotenv import load_dotenv
 import time
 
-# -------------------------------------------------
-# App & extensions
-# -------------------------------------------------
+# ================================================================================
+# APP CONFIGURATION & EXTENSIONS SETUP
+# ================================================================================
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Educational Resource Hub
+# Educational Resource Hub Constants
 RESOURCE_TYPES = ['video', 'book', 'article']
 
-# ---------- File upload settings for test questions ----------
+# File upload settings for test questions
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 QUESTION_UPLOAD_SUBDIR = os.path.join("static", "uploads", "questions")
 QUESTION_UPLOAD_FOLDER = os.path.join(BASE_DIR, QUESTION_UPLOAD_SUBDIR)
@@ -43,6 +96,7 @@ app.config["QUESTION_UPLOAD_FOLDER"] = QUESTION_UPLOAD_FOLDER
 ALLOWED_IMAGE_EXT = {"png", "jpg", "jpeg", "gif"}
 ALLOWED_AUDIO_EXT = {"mp3", "wav", "ogg"}
 
+# Initialize Flask extensions
 load_dotenv()
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
@@ -50,25 +104,29 @@ login_manager.login_view = "login"
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
-# Initialize APScheduler for automated tasks
+# Initialize APScheduler for automated background tasks
 scheduler = APScheduler()
 app.config['SCHEDULER_API_ENABLED'] = False  # Disable API for security
 app.config['SCHEDULER_TIMEZONE'] = 'UTC'  # Set timezone
 
+# Validation patterns and constants
 EMAIL_REGEX = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 ADMIN_PASSKEY = "child1234"
 
-# -------------- GEMINI + BENCHMARK SETUP --------------
+# Google Gemini AI Configuration
 genai.configure(api_key=app.config["GOOGLE_API_KEY"])
 
+# Load developmental milestones benchmark data
 BENCHMARK_PATH = "static/data/developmental_milestones.csv"
 benchmark_df = pd.read_csv(BENCHMARK_PATH)
 benchmark_df.columns = [c.strip().capitalize() for c in benchmark_df.columns]
 
 
-# -------------------------------------------------
-# DB helper
-# -------------------------------------------------
+# ================================================================================
+# DATABASE HELPER FUNCTIONS
+# ================================================================================
+# Module: Database Connection Management
+# Purpose: Provides database connection helper for MySQL
 def get_db_conn():
     return mysql.connector.connect(
         host=app.config["DB_HOST"],
@@ -78,9 +136,13 @@ def get_db_conn():
     )
 
 
-# -------------------------------------------------
-# Product Recommendation Helpers
-# -------------------------------------------------
+# ================================================================================
+# PRODUCT RECOMMENDATION HELPERS
+# ================================================================================
+# Module: Tutoring & Product Recommendations
+# Purpose: Generate e-commerce links and extract product recommendations from AI
+# Usage: Used in tutoring recommendations feature to suggest educational products
+
 def generate_product_links(keywords, product_type):
     """
     Generate search URLs for multiple e-commerce platforms based on keywords.
@@ -224,9 +286,13 @@ def extract_products_from_response(full_response, child_id, cursor):
     return cleaned_html.strip(), products
 
 
-# -------------------------------------------------
-# User model for Flask-Login
-# -------------------------------------------------
+# ================================================================================
+# USER MODEL & FLASK-LOGIN SETUP
+# ================================================================================
+# Module: User Authentication
+# Purpose: User model for Flask-Login session management
+# Fields: id, name, email, role (parent/admin)
+
 class User(UserMixin):
     def __init__(self, id, name, email, role):
         self.id = id
@@ -252,9 +318,13 @@ def load_user(user_id):
         return User(row["id"], row["name"], row["email"], row["role"])
     return None
 
-# -------------------------------------------------
-# Session Management Middleware
-# -------------------------------------------------
+# ================================================================================
+# SESSION MANAGEMENT MIDDLEWARE
+# ================================================================================
+# Module: Session Timeout & Security
+# Purpose: Role-based session timeout (Parents: 30 min, Admins: no timeout)
+# Runs before every request to check session validity
+
 @app.before_request
 def check_session_timeout():
     """
@@ -295,9 +365,13 @@ def check_session_timeout():
     elif normalize_role(current_user.role) == "admin":
         session.permanent = True
 
-# -------------------------------------------------
-# Helpers
-# -------------------------------------------------
+# ================================================================================
+# HELPER & VALIDATION FUNCTIONS
+# ================================================================================
+# Module: Input Validation & Utilities
+# Purpose: Validation functions for user input, role management, and file handling
+# Functions: Password strength, name validation, date validation, role checking
+
 def is_strong_password(password: str) -> bool:
     if not password:
         return False
@@ -462,9 +536,16 @@ def save_question_media(file_storage, test_id, index):
 
 
 
-# -------------------------------------------------
-# AUTH
-# -------------------------------------------------
+# ################################################################################
+# AUTHENTICATION MODULE
+# ################################################################################
+# Module: User Authentication & Account Management
+# Routes: Registration (parent/admin), Login, Logout
+# Features: Email validation, password hashing, role-based access
+
+# ================================================================================
+# AUTHENTICATION ROUTES
+# ================================================================================
 @app.route("/register")
 def register_redirect():
     return redirect(url_for("register_select"))
@@ -693,6 +774,14 @@ def logout():
     logout_user()
     flash("You have been logged out.", "info")
     return redirect(url_for("login"))
+
+
+# ================================================================================
+# EMAIL NOTIFICATION FUNCTIONS
+# ================================================================================
+# Module: Email Notifications & Account Management
+# Purpose: Send password reset, inactivity warnings, and deletion notifications
+# Features: Auto-cleanup of inactive users, soft deletion with 90-day recovery
 
 def build_external_url(endpoint, **values):
     """Safely build external URLs even when no request context is active."""
@@ -1157,9 +1246,13 @@ def permanently_delete_old_accounts():
     return stats
 
 
-# -------------------------------------------------
-# SCHEDULED TASKS (APScheduler)
-# -------------------------------------------------
+# ================================================================================
+# SCHEDULED BACKGROUND TASKS
+# ================================================================================
+# Module: Automated Cleanup & Maintenance
+# Purpose: Daily tasks for inactive user cleanup and permanent deletion
+# Schedule: Cleanup at 2 AM UTC, Permanent deletion at 3 AM UTC
+
 @scheduler.task('cron', id='cleanup_inactive_users', hour=2, minute=0)
 def scheduled_cleanup_inactive_users():
     """
@@ -1191,6 +1284,13 @@ def scheduled_permanent_deletion():
             import traceback
             traceback.print_exc()
 
+
+# ================================================================================
+# PASSWORD RESET ROUTES
+# ================================================================================
+# Module: Password Recovery
+# Purpose: Allow users to reset forgotten passwords via email
+# Security: Tokens expire after 1 hour
 
 @app.route("/forgot", methods=["GET", "POST"])
 def forgot():
@@ -1254,9 +1354,16 @@ def reset_password(token):
     return render_template("reset.html")
 
 
-# -------------------------------------------------
+# ################################################################################
+# PARENT/USER DASHBOARD MODULE
+# ################################################################################
+# Module: Parent Dashboard & Child Management
+# Routes: Child selection, dashboard, children management, profile, academic tracking
+# Features: Child profiles, academic scores, developmental milestones, learning style
+
+# ================================================================================
 # DASHBOARD & CHILD SELECTION
-# -------------------------------------------------
+# ================================================================================
 @app.route("/select-child", methods=["GET", "POST"])
 @login_required
 def select_child():
@@ -1358,9 +1465,13 @@ def dashboard():
     )
 
 
-# -------------------------------------------------
-# CHILDREN (standalone page)
-# -------------------------------------------------
+# ================================================================================
+# CHILDREN MANAGEMENT
+# ================================================================================
+# Module: Child Profile Management
+# Purpose: Add and manage child profiles for parent users
+# Validation: Age 1-6, valid DOB, name validation
+
 @app.route("/children", methods=["GET", "POST"])
 @login_required
 def children():
@@ -1446,9 +1557,13 @@ def children():
     return render_template("children.html", children=children_rows)
 
 
-# -------------------------------------------------
-# PROFILE (no test management here anymore)
-# -------------------------------------------------
+# ================================================================================
+# PROFILE MANAGEMENT
+# ================================================================================
+# Module: User Profile Management
+# Purpose: View/edit user profile, manage child profiles, change password
+# Features: Child CRUD operations, inactivity warnings, password validation
+
 @app.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
@@ -1694,9 +1809,13 @@ def edit_child(child_id):
     return redirect(url_for("profile"))
 
 
-# -------------------------------------------------
-# ACADEMIC
-# -------------------------------------------------
+# ================================================================================
+# ACADEMIC PROGRESS TRACKING
+# ================================================================================
+# Module: Academic Performance Management
+# Purpose: Track academic scores by subject (English, Chinese, Malay, Math, Science)
+# Features: Year/month tracking, subject averages, score validation (0-100)
+
 @app.route("/academic", methods=["GET", "POST"])
 @login_required
 def academic_progress():
@@ -1838,9 +1957,14 @@ def delete_academic(id):
     return redirect(url_for("academic_progress"))
 
 
-# -------------------------------------------------
-# PRESCHOOL
-# -------------------------------------------------
+# ================================================================================
+# PRESCHOOL DEVELOPMENTAL TRACKER
+# ================================================================================
+# Module: Developmental Milestones Assessment
+# Purpose: Track developmental progress across 4 domains
+# Domains: Social/Emotional, Cognitive, Language/Communication, Movement/Physical
+# Features: AI-powered analysis using Gemini, benchmark comparison
+
 def calculate_months_difference(start_date, end_date):
     return (end_date.year - start_date.year) * 12 + (
         end_date.month - start_date.month
@@ -2262,9 +2386,13 @@ def delete_preschool(id):
     return redirect(url_for("preschool_tracker"))
 
 
-# -------------------------------------------------
-# LEARNING STYLE
-# -------------------------------------------------
+# ================================================================================
+# LEARNING STYLE ANALYSIS
+# ================================================================================
+# Module: VARK Learning Style Assessment
+# Purpose: Identify child's learning preferences (Visual, Auditory, Reading, Kinesthetic)
+# Features: Questionnaires, parent observations, AI-powered recommendations
+
 @app.route("/dashboard/learning", methods=["GET", "POST"])
 @login_required
 def learning_style():
@@ -2721,12 +2849,14 @@ def delete_learning_observation(observation_id):
     return redirect(request.referrer or url_for("profile"))
 
 
-# -------------------------------------------------
-# TUTORING, INSIGHTS, PLAN, RESOURCES
-# (unchanged logic, just using get_db_conn)
-# -------------------------------------------------
+# ================================================================================
+# TUTORING RECOMMENDATIONS
+# ================================================================================
+# Module: Personalized Tutoring Suggestions
+# Purpose: AI-powered tutoring recommendations with product suggestions
+# Features: Based on preschool & learning style analysis, e-commerce integration
+# Products: Books, learning tools, toys, workbooks with Amazon/Shopee/Lazada links
 
-# --- TUTORING ---
 @app.route("/dashboard/tutoring")
 @login_required
 def tutoring_recommendations():
@@ -2949,7 +3079,16 @@ def tutoring_recommendations():
 
 
 
-# --- AI INSIGHTS ---
+# ################################################################################
+# AI-POWERED INSIGHTS MODULE
+# ################################################################################
+# Module: Academic Insights & Analysis
+# Purpose: AI-powered analysis of academic performance and mini-game results
+# Features: Strengths/weaknesses analysis, personalized tips, game performance interpretation
+
+# ================================================================================
+# AI ACADEMIC INSIGHTS
+# ================================================================================
 @app.route("/dashboard/insights")
 @login_required
 def ai_insights():
@@ -3170,7 +3309,13 @@ def ai_insights():
     )
 
 
-# --- LEARNING PLAN ---
+# ================================================================================
+# WEEKLY LEARNING PLAN GENERATOR
+# ================================================================================
+# Module: Personalized Learning Plan
+# Purpose: AI-generated weekly learning plans with daily activities
+# Features: Day-by-day recommendations, long-term strategies, based on all analyses
+
 @app.route("/dashboard/plan")
 @login_required
 def learning_plan():
@@ -3365,7 +3510,13 @@ RULES:
     )
 
 
-# --- RESOURCES HUB ---
+# ================================================================================
+# EDUCATIONAL RESOURCES HUB
+# ================================================================================
+# Module: Curated Educational Content Library
+# Purpose: Age-filtered educational resources for parents and children
+# Types: Videos, books, articles | Admin-curated content
+
 @app.route("/dashboard/resources")
 @login_required
 def resources_hub():
@@ -3459,6 +3610,18 @@ def resources_hub():
         active="resources",
     )
 
+
+# ################################################################################
+# MINI-GAMES MODULE
+# ################################################################################
+# Module: Educational Mini-Games
+# Purpose: Age-appropriate educational games for skill development
+# Games: Counting Animals (math), Vocabulary Animals (words), Spelling Animals (phonics)
+# Features: Performance tracking, game results storage
+
+# ================================================================================
+# MINI-GAMES ROUTES
+# ================================================================================
 @app.route("/dashboard/games")
 @login_required
 def dashboard_games():
@@ -3629,9 +3792,20 @@ def save_game_result():
     return {"success": True}, 200
 
 
-# -------------------------------------------------
-# ADMIN AREA
-# -------------------------------------------------
+# ################################################################################
+# ADMIN MODULE
+# ################################################################################
+# Module: Administrative Management System
+# Routes: User management, resources, games, tests, inactive users, deleted users
+# Features: CRUD operations, search, pagination, protection, restoration
+
+# ================================================================================
+# ADMIN DASHBOARD & USER MANAGEMENT
+# ================================================================================
+# Module: Admin Dashboard & User Administration
+# Purpose: Manage users, view statistics, user CRUD operations
+# Features: Search, sort, pagination, admin account deletion protection
+
 @app.route("/admin/dashboard")
 @login_required
 @roles_required("admin")
@@ -3865,9 +4039,13 @@ def admin_delete_user(user_id):
     flash("User account deleted successfully.", "success")
     return redirect(url_for("admin_users"))
 
-# -------------------------------------------------
-# ADMIN - EDUCATIONAL RESOURCES MANAGEMENT
-# -------------------------------------------------
+# ================================================================================
+# ADMIN RESOURCES MANAGEMENT
+# ================================================================================
+# Module: Educational Resources Administration
+# Purpose: Create, edit, and delete educational resources
+# Features: Age range filtering, resource types (video, book, article)
+
 @app.route("/admin/resources")
 @login_required
 @roles_required("admin")
@@ -4044,10 +4222,13 @@ def admin_delete_resource(resource_id):
 
 
 
+# ================================================================================
+# ADMIN MINI-GAMES MANAGEMENT
+# ================================================================================
+# Module: Game Administration
+# Purpose: Manage mini-games metadata and settings
+# Features: Edit game settings, age range configuration, active/inactive status
 
-
-
-# ---- ADMIN MINI GAMES MANAGEMENT----
 @app.route("/admin/games")
 @login_required
 @roles_required("admin")
@@ -4146,7 +4327,13 @@ def admin_delete_game(game_id):
     flash("Game deleted successfully.", "success")
     return redirect(url_for("admin_games"))
 
-# ---- ADMIN TEST MANAGEMENT (GLOBAL TESTS) ----
+# ================================================================================
+# ADMIN TEST/QUESTIONNAIRE MANAGEMENT
+# ================================================================================
+# Module: Learning Style Test Administration
+# Purpose: Create and manage questionnaires for learning style assessment
+# Features: Question categorization (VARK), media upload, question CRUD
+
 @app.route("/admin/tests")
 @login_required
 @roles_required("admin")
@@ -4307,9 +4494,14 @@ def admin_delete_test(test_id):
     return redirect(url_for("admin_tests"))
 
 
-# -------------------------------------------------
-# ADMIN - INACTIVE USER MANAGEMENT
-# -------------------------------------------------
+# ================================================================================
+# ADMIN INACTIVE USERS MANAGEMENT
+# ================================================================================
+# Module: Inactive User Monitoring & Management
+# Purpose: Monitor, protect, reactivate, and manage inactive parent accounts
+# Features: Categorization (Active, At Risk, Pending), protection, manual cleanup
+# Recovery: Soft deletion with 90-day restoration period
+
 @app.route("/admin/inactive-users")
 @login_required
 @roles_required("admin")
@@ -4550,9 +4742,16 @@ def admin_run_cleanup():
     return redirect(url_for("admin_inactive_users"))
 
 
-# -------------------------------------------------
-# INDEX
-# -------------------------------------------------
+# ################################################################################
+# APP INITIALIZATION & ROOT ROUTE
+# ################################################################################
+# Module: Application Initialization
+# Purpose: Root route with role-based redirects and scheduler initialization
+# Features: APScheduler startup for automated background tasks
+
+# ================================================================================
+# ROOT ROUTE
+# ================================================================================
 @app.route("/")
 def index():
     if current_user.is_authenticated:
