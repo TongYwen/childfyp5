@@ -3818,7 +3818,7 @@ def admin_delete_user(user_id):
     conn = get_db_conn()
     cursor = conn.cursor()
 
-    # Check if the user being deleted is an admin
+    # Check if the user being deleted is a parent
     cursor.execute(
         "SELECT role FROM users WHERE id = %s", (user_id,)
     )
@@ -3832,12 +3832,12 @@ def admin_delete_user(user_id):
 
     user_role = user_result[0]
 
-    # Prevent deletion of admin accounts
-    if normalize_role(user_role) == "admin":
+    # Prevent deletion of parent accounts
+    if normalize_role(user_role) == "parent":
         cursor.close()
         conn.close()
         flash(
-            "Admin accounts cannot be deleted. Only parent accounts can be removed from the system.",
+            "Parent accounts cannot be deleted. Only admin accounts can be removed from the system.",
             "danger",
         )
         return redirect(url_for("admin_users"))

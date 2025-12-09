@@ -124,17 +124,17 @@
                     <a href="{{ url_for('admin_edit_user', user_id=u.id) }}" class="btn btn-sm btn-outline-primary">
                         Edit
                     </a>
-                    {% if u.role == 'parent' %}
+                    {% if u.role == 'admin' %}
                         <form   method="POST"
                             action="{{ url_for('admin_delete_user', user_id=u.id) }}"
                             style="display:inline;"
-                            onsubmit="return confirm('Are you sure you want to delete this user?');">
+                            onsubmit="return confirm('Are you sure you want to delete this admin account?');">
                             <button type="submit" class="btn btn-sm btn-outline-danger ms-2">
                                         Delete
                             </button>
                             </form>
                     {% else %}
-                        <span class="badge bg-secondary ms-2" title="Admin accounts cannot be deleted">Protected</span>
+                        <span class="badge bg-secondary ms-2" title="Parent accounts cannot be deleted">Protected</span>
                     {% endif %}
                 </td>
             </tr>
