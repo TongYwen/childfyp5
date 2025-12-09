@@ -124,6 +124,7 @@
                     <a href="{{ url_for('admin_edit_user', user_id=u.id) }}" class="btn btn-sm btn-outline-primary">
                         Edit
                     </a>
+                    {% if u.role == 'parent' %}
                         <form   method="POST"
                             action="{{ url_for('admin_delete_user', user_id=u.id) }}"
                             style="display:inline;"
@@ -132,6 +133,9 @@
                                         Delete
                             </button>
                             </form>
+                    {% else %}
+                        <span class="badge bg-secondary ms-2" title="Admin accounts cannot be deleted">Protected</span>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
