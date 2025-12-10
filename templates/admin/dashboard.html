@@ -132,6 +132,69 @@
                 </div>
             </a>
         </div>
+
+        <!-- Learning Style Tests -->
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('admin_tests') }}" class="text-decoration-none">
+                <div class="card admin-action-card hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-success-soft">
+                                <i class="bi bi-clipboard-check text-success"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Learning Style</h5>
+                        </div>
+                        <p class="card-text text-muted">Create and manage questionnaires</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_tests }} questionnaires</small>
+                            <i class="bi bi-arrow-right-circle text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Educational Resources -->
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('admin_resources') }}" class="text-decoration-none">
+                <div class="card admin-action-card hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-info-soft">
+                                <i class="bi bi-book text-info"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Resources</h5>
+                        </div>
+                        <p class="card-text text-muted">Manage videos, books, games, and articles</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_resources }} resources</small>
+                            <i class="bi bi-arrow-right-circle text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Mini Games -->
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('admin_games') }}" class="text-decoration-none">
+                <div class="card admin-action-card hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-purple-soft">
+                                <i class="bi bi-controller text-purple"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Mini Games</h5>
+                        </div>
+                        <p class="card-text text-muted">Add, edit, or remove educational games</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_games }} games</small>
+                            <i class="bi bi-arrow-right-circle text-purple"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
 
     <!-- Recent Activity Section -->
