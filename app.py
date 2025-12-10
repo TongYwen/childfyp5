@@ -2123,6 +2123,18 @@ def academic_progress():
     conn = get_db_conn()
     cursor = conn.cursor(dictionary=True)
 
+    # Fetch and validate child data
+    cursor.execute(
+        "SELECT * FROM children WHERE id=%s AND parent_id=%s",
+        (child_id, current_user.id),
+    )
+    selected_child = cursor.fetchone()
+    if not selected_child:
+        flash("Child not found.", "danger")
+        cursor.close()
+        conn.close()
+        return redirect(url_for("select_child"))
+
     if request.method == "POST":
         subject = request.form.get("subject")
         score = request.form.get("score", type=int)
@@ -2238,7 +2250,7 @@ def academic_progress():
     return render_template(
         "dashboard.html",
         content_template="dashboard/_academic.html",
-        selected_child={"id": child_id},
+        selected_child=selected_child,
         scores=display_scores,
         subjects=subjects,
         years=years,
@@ -2258,11 +2270,21 @@ def delete_academic(id):
 
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM academic_scores WHERE id = %s", (id,))
+
+    # Validate that the record belongs to the user's child
+    cursor.execute(
+        "DELETE FROM academic_scores WHERE id = %s AND child_id = %s",
+        (id, child_id)
+    )
+
+    if cursor.rowcount == 0:
+        flash("Record not found or access denied.", "danger")
+    else:
+        flash("Academic record deleted successfully.", "success")
+
     conn.commit()
     cursor.close()
     conn.close()
-    flash("Academic record deleted successfully.", "success")
     return redirect(url_for("academic_progress"))
 
 
