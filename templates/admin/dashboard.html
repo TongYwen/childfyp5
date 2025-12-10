@@ -1,96 +1,474 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Admin Dashboard</h2>
-    <p>Welcome, {{ current_user.name }} (Admin).</p>
+<div class="container-fluid mt-4 px-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="admin-dashboard-title">
+                <i class="bi bi-speedometer2"></i> Admin Dashboard
+            </h2>
+            <p class="text-muted">Welcome back, {{ current_user.name }}! Here's what's happening with your platform today.</p>
+        </div>
+    </div>
 
-    <div class="row mt-4">
-        <!-- ✅ User Management (ADD THIS BLOCK) -->
-        <div class="col-md-4">
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-4">
+        <!-- Total Users Card -->
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card stat-card-primary">
+                <div class="stat-icon">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value">{{ stats.total_users }}</div>
+                    <div class="stat-detail">
+                        <span class="badge bg-light text-dark me-1">
+                            <i class="bi bi-person-check"></i> {{ stats.total_parents }} Parents
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="bi bi-shield-check"></i> {{ stats.total_admins }} Admins
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Children Card -->
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card stat-card-success">
+                <div class="stat-icon">
+                    <i class="bi bi-emoji-smile-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Children Profiles</div>
+                    <div class="stat-value">{{ stats.total_children }}</div>
+                    <div class="stat-detail">Active learning profiles</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Resources Card -->
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card stat-card-warning">
+                <div class="stat-icon">
+                    <i class="bi bi-book-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Resources</div>
+                    <div class="stat-value">{{ stats.total_resources }}</div>
+                    <div class="stat-detail">Educational materials</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Games Card -->
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card stat-card-info">
+                <div class="stat-icon">
+                    <i class="bi bi-controller"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Mini Games</div>
+                    <div class="stat-value">{{ stats.total_games }}</div>
+                    <div class="stat-detail">Interactive activities</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Stats Row -->
+    <div class="row g-4 mb-4">
+        <!-- Total Tests Card -->
+        <div class="col-xl-4 col-md-6">
+            <div class="stat-card-small stat-card-purple">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-small">
+                        <i class="bi bi-clipboard-check-fill"></i>
+                    </div>
+                    <div class="ms-3">
+                        <div class="stat-label-small">Learning Style Tests</div>
+                        <div class="stat-value-small">{{ stats.total_tests }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unread Notifications Card -->
+        <div class="col-xl-4 col-md-6">
+            <div class="stat-card-small stat-card-danger">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-small">
+                        <i class="bi bi-bell-fill"></i>
+                    </div>
+                    <div class="ms-3">
+                        <div class="stat-label-small">Unread Notifications</div>
+                        <div class="stat-value-small">{{ stats.unread_notifications }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Access Card -->
+        <div class="col-xl-4 col-md-6">
+            <div class="stat-card-small stat-card-teal">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-small">
+                        <i class="bi bi-speedometer"></i>
+                    </div>
+                    <div class="ms-3">
+                        <div class="stat-label-small">System Status</div>
+                        <div class="stat-value-small text-success">
+                            <i class="bi bi-check-circle-fill"></i> Active
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row g-4 mb-4">
+        <!-- Recent Activity Section -->
+        <div class="col-xl-6">
+            <div class="card admin-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history text-primary"></i> Recent Users
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if stats.recent_users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Joined</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in stats.recent_users %}
+                                <tr>
+                                    <td><strong>{{ user.name }}</strong></td>
+                                    <td><small class="text-muted">{{ user.email }}</small></td>
+                                    <td>
+                                        {% if user.role == 'admin' %}
+                                        <span class="badge bg-danger">Admin</span>
+                                        {% else %}
+                                        <span class="badge bg-primary">Parent</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small>{{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">No recent users</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-outline-primary">
+                        View All Users <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Children Section -->
+        <div class="col-xl-6">
+            <div class="card admin-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-person-plus text-success"></i> Recent Children
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if stats.recent_children %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Age</th>
+                                    <th>Parent</th>
+                                    <th>Added</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for child in stats.recent_children %}
+                                <tr>
+                                    <td><strong>{{ child.name }}</strong></td>
+                                    <td><span class="badge bg-info">{{ child.age }} yrs</span></td>
+                                    <td><small class="text-muted">{{ child.parent_name }}</small></td>
+                                    <td><small>{{ child.created_at.strftime('%b %d, %Y') if child.created_at else 'N/A' }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">No recent children profiles</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Cards Section -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <h4 class="mb-3"><i class="bi bi-grid-3x3-gap-fill text-primary"></i> Management Tools</h4>
+        </div>
+
+        <!-- User Management -->
+        <div class="col-lg-4 col-md-6">
             <a href="{{ url_for('admin_users') }}" class="text-decoration-none">
-                <div class="card shadow-sm mb-4">
+                <div class="card admin-action-card hover-lift">
                     <div class="card-body">
-                        <h5 class="card-title">User Management</h5>
-                        <p class="card-text">View, edit, or delete parent/admin accounts.</p>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-primary-soft">
+                                <i class="bi bi-people text-primary"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">User Management</h5>
+                        </div>
+                        <p class="card-text text-muted">View, edit, or delete parent/admin accounts</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_users }} total users</small>
+                            <i class="bi bi-arrow-right-circle text-primary"></i>
+                        </div>
                     </div>
                 </div>
             </a>
         </div>
-        <!-- END User Management -->
 
-        <!-- Inactive User Management -->
-        <div class="col-md-4">
+        <!-- Inactive Users -->
+        <div class="col-lg-4 col-md-6">
             <a href="{{ url_for('admin_inactive_users') }}" class="text-decoration-none">
-                <div class="card shadow-sm mb-4">
+                <div class="card admin-action-card hover-lift">
                     <div class="card-body">
-                        <h5 class="card-title">Inactive User Management</h5>
-                        <p class="card-text">Monitor and manage inactive user accounts.</p>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-warning-soft">
+                                <i class="bi bi-person-x text-warning"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Inactive Users</h5>
+                        </div>
+                        <p class="card-text text-muted">Monitor and manage inactive accounts</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Account monitoring</small>
+                            <i class="bi bi-arrow-right-circle text-warning"></i>
+                        </div>
                     </div>
                 </div>
             </a>
         </div>
-        <!-- END Inactive User Management -->
 
-        <!-- Questionnaires -->
-        <div class="col-md-4">
+        <!-- Learning Style Tests -->
+        <div class="col-lg-4 col-md-6">
             <a href="{{ url_for('admin_tests') }}" class="text-decoration-none">
-                <div class="card mb-3 shadow-sm hover-shadow">
+                <div class="card admin-action-card hover-lift">
                     <div class="card-body">
-                        <h5 class="card-title">Learning Style Management</h5>
-                        <p class="card-text">Create and manage learning style questionnaire.</p>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-success-soft">
+                                <i class="bi bi-clipboard-check text-success"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Learning Style</h5>
+                        </div>
+                        <p class="card-text text-muted">Create and manage questionnaires</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_tests }} questionnaires</small>
+                            <i class="bi bi-arrow-right-circle text-success"></i>
+                        </div>
                     </div>
                 </div>
             </a>
         </div>
-
-
-
 
         <!-- Educational Resources -->
-        <div class="col-md-4">
+        <div class="col-lg-4 col-md-6">
             <a href="{{ url_for('admin_resources') }}" class="text-decoration-none">
-                <div class="card mb-3 shadow-sm hover-shadow">
+                <div class="card admin-action-card hover-lift">
                     <div class="card-body">
-                        <h5 class="card-title">Educational Resources</h5>
-                        <p class="card-text">Add or edit videos, books, games, apps, and articles.</p>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-info-soft">
+                                <i class="bi bi-book text-info"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Resources</h5>
+                        </div>
+                        <p class="card-text text-muted">Manage videos, books, games, and articles</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_resources }} resources</small>
+                            <i class="bi bi-arrow-right-circle text-info"></i>
+                        </div>
                     </div>
                 </div>
             </a>
         </div>
 
-
-        <!-- Mini Game Management -->
-        <div class="col-md-4">
+        <!-- Mini Games -->
+        <div class="col-lg-4 col-md-6">
             <a href="{{ url_for('admin_games') }}" class="text-decoration-none">
-                <div class="card mb-3 shadow-sm hover-shadow">
+                <div class="card admin-action-card hover-lift">
                     <div class="card-body">
-                        <h5 class="card-title">Mini Game Management</h5>
-                        <p class="card-text">Add, edit, or remove mini educational games.</p>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-purple-soft">
+                                <i class="bi bi-controller text-purple"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Mini Games</h5>
+                        </div>
+                        <p class="card-text text-muted">Add, edit, or remove educational games</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_games }} games</small>
+                            <i class="bi bi-arrow-right-circle text-purple"></i>
+                        </div>
                     </div>
                 </div>
             </a>
         </div>
 
-
-        <!-- 🔔 Notification Management -->
-        <div class="col-md-4">
+        <!-- Notifications -->
+        <div class="col-lg-4 col-md-6">
             <a href="{{ url_for('admin_notifications') }}" class="text-decoration-none">
-                <div class="card mb-3 shadow-sm hover-shadow">
+                <div class="card admin-action-card hover-lift">
                     <div class="card-body">
-                        <h5 class="card-title">Notification Management</h5>
-                        <p class="card-text">Manage all system notifications.</p>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-danger-soft">
+                                <i class="bi bi-bell text-danger"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Notifications</h5>
+                        </div>
+                        <p class="card-text text-muted">Manage all system notifications</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.unread_notifications }} unread</small>
+                            <i class="bi bi-arrow-right-circle text-danger"></i>
+                        </div>
                     </div>
                 </div>
             </a>
         </div>
+    </div>
 
+    <!-- User Distribution Chart -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-6">
+            <div class="card admin-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-pie-chart-fill text-primary"></i> User Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="userDistributionChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
 
-
-
-
-        
-
+        <div class="col-xl-6">
+            <div class="card admin-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle-fill text-info"></i> Platform Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="overview-item">
+                        <div class="overview-label">
+                            <i class="bi bi-people-fill text-primary"></i> Total Users
+                        </div>
+                        <div class="overview-value">{{ stats.total_users }}</div>
+                    </div>
+                    <div class="overview-item">
+                        <div class="overview-label">
+                            <i class="bi bi-emoji-smile-fill text-success"></i> Children Profiles
+                        </div>
+                        <div class="overview-value">{{ stats.total_children }}</div>
+                    </div>
+                    <div class="overview-item">
+                        <div class="overview-label">
+                            <i class="bi bi-book-fill text-warning"></i> Educational Resources
+                        </div>
+                        <div class="overview-value">{{ stats.total_resources }}</div>
+                    </div>
+                    <div class="overview-item">
+                        <div class="overview-label">
+                            <i class="bi bi-controller text-info"></i> Mini Games
+                        </div>
+                        <div class="overview-value">{{ stats.total_games }}</div>
+                    </div>
+                    <div class="overview-item mb-0">
+                        <div class="overview-label">
+                            <i class="bi bi-clipboard-check-fill text-purple"></i> Questionnaires
+                        </div>
+                        <div class="overview-value">{{ stats.total_tests }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // User Distribution Chart
+    const ctx = document.getElementById('userDistributionChart').getContext('2d');
+
+    const roleData = {{ stats.role_distribution | tojson }};
+    const labels = roleData.map(item => item.role.charAt(0).toUpperCase() + item.role.slice(1));
+    const data = roleData.map(item => item.count);
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Users',
+                data: data,
+                backgroundColor: [
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(25, 135, 84, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(102, 126, 234, 1)',
+                    'rgba(220, 53, 69, 1)',
+                    'rgba(25, 135, 84, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += context.parsed + ' users';
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
