@@ -204,25 +204,17 @@ document.addEventListener('DOMContentLoaded', function() {
         label: 'Average Score',
         data: averages,
         backgroundColor: [
-          'rgba(102, 126, 234, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(147, 51, 234, 0.8)',
-          'rgba(236, 72, 153, 0.8)',
-          'rgba(20, 184, 166, 0.8)'
+          '#3B82F6',  // Blue
+          '#F97316',  // Orange
+          '#10B981',  // Green
+          '#EF4444',  // Red
+          '#8B5CF6',  // Purple
+          '#14B8A6',  // Teal
+          '#F59E0B',  // Amber
+          '#EC4899'   // Pink
         ],
-        borderColor: [
-          'rgba(102, 126, 234, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(147, 51, 234, 1)',
-          'rgba(236, 72, 153, 1)',
-          'rgba(20, 184, 166, 1)'
-        ],
-        borderWidth: 2,
-        borderRadius: 8
+        borderWidth: 0,
+        barPercentage: 0.7
       }]
     },
     options: {
@@ -242,11 +234,9 @@ document.addEventListener('DOMContentLoaded', function() {
           bodyFont: {
             size: 13
           },
-          borderColor: '#e5e7eb',
-          borderWidth: 1,
           callbacks: {
             label: function(context) {
-              return 'Average: ' + (context.parsed.y * 100).toFixed(1) + '%';
+              return 'Average Score: ' + (context.parsed.y * 100).toFixed(1) + '%';
             }
           }
         }
@@ -255,16 +245,18 @@ document.addEventListener('DOMContentLoaded', function() {
         y: {
           beginAtZero: true,
           max: 1,
+          grid: {
+            color: '#E5E7EB',
+            drawBorder: false
+          },
           ticks: {
             callback: function(value) {
               return (value * 100) + '%';
             },
             font: {
               size: 12
-            }
-          },
-          grid: {
-            color: '#f3f4f6'
+            },
+            color: '#6B7280'
           },
           title: {
             display: true,
@@ -272,17 +264,21 @@ document.addEventListener('DOMContentLoaded', function() {
             font: {
               size: 13,
               weight: 'bold'
-            }
+            },
+            color: '#374151'
           }
         },
         x: {
           grid: {
-            display: false
+            display: false,
+            drawBorder: false
           },
           ticks: {
             font: {
-              size: 12
-            }
+              size: 12,
+              weight: '500'
+            },
+            color: '#374151'
           },
           title: {
             display: true,
@@ -290,7 +286,8 @@ document.addEventListener('DOMContentLoaded', function() {
             font: {
               size: 13,
               weight: 'bold'
-            }
+            },
+            color: '#374151'
           }
         }
       }
