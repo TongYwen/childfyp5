@@ -2219,19 +2219,6 @@ def academic_progress():
                 sub: round(sum(vals) / len(vals), 1) for sub, vals in subject_scores.items()
             }
 
-    # Define default subjects for preschool
-    default_subjects = [
-        "English",
-        "Chinese",
-        "Malay",
-        "Mathematics",
-        "Science"
-    ]
-
-    # Merge default subjects with user's existing subjects
-    user_subjects = {row["subject"] for row in scores}
-    subjects = default_subjects + [s for s in user_subjects if s not in default_subjects]
-
     cursor.close()
     conn.close()
 
@@ -2258,11 +2245,17 @@ def delete_academic(id):
 
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM academic_scores WHERE id = %s", (id,))
+    # Security: Verify the record belongs to the selected child
+    cursor.execute("DELETE FROM academic_scores WHERE id = %s AND child_id = %s", (id, child_id))
     conn.commit()
+
+    if cursor.rowcount > 0:
+        flash("Academic record deleted successfully.", "success")
+    else:
+        flash("Record not found or access denied.", "danger")
+
     cursor.close()
     conn.close()
-    flash("Academic record deleted successfully.", "success")
     return redirect(url_for("academic_progress"))
 
 
