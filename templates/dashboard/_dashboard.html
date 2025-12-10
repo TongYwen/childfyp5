@@ -27,7 +27,12 @@
                                 <i class="bi bi-mortarboard"></i> Grade {{ selected_child.grade_level }}
                             </span>
                             <span class="detail-badge">
-                                <i class="bi bi-gender-{{ 'male' if selected_child.gender|lower == 'male' else 'female' }}"></i> {{ selected_child.gender }}
+                                {% if selected_child.gender|lower == 'male' %}
+                                    <i class="bi bi-gender-male"></i>
+                                {% else %}
+                                    <i class="bi bi-gender-female"></i>
+                                {% endif %}
+                                {{ selected_child.gender }}
                             </span>
                         </div>
                     </div>
@@ -62,7 +67,11 @@
                     <div class="stat-label">Average Score</div>
                     <div class="stat-value">
                         {% if scores %}
-                            {{ "%.1f"|format((scores|sum(attribute='score')|float / scores|length) * 100) }}%
+                            {% set total_score = 0 %}
+                            {% for s in scores %}
+                                {% set total_score = total_score + s.score %}
+                            {% endfor %}
+                            {{ "%.1f"|format((total_score / scores|length) * 100) }}%
                         {% else %}
                             N/A
                         {% endif %}
@@ -96,7 +105,11 @@
                     <div class="stat-label">Progress Status</div>
                     <div class="stat-value">
                         {% if scores %}
-                            {% set avg = (scores|sum(attribute='score')|float / scores|length) * 100 %}
+                            {% set total_score = 0 %}
+                            {% for s in scores %}
+                                {% set total_score = total_score + s.score %}
+                            {% endfor %}
+                            {% set avg = (total_score / scores|length) * 100 %}
                             {% if avg >= 80 %}
                                 <span style="font-size: 1.5rem; color: #10b981;">
                                     <i class="bi bi-emoji-smile"></i> Excellent
@@ -166,19 +179,8 @@
                             <i class="bi bi-trophy-fill text-warning"></i> Best Subject
                         </div>
                         <div class="overview-value" style="font-size: 1.2rem;">
-                            {% if scores and subjects %}
-                                {% set best_subject = namespace(name='N/A', score=0) %}
-                                {% for subject in subjects %}
-                                    {% set subject_scores = scores|selectattr('subject', 'equalto', subject)|list %}
-                                    {% if subject_scores %}
-                                        {% set avg = (subject_scores|sum(attribute='score')|float / subject_scores|length) * 100 %}
-                                        {% if avg > best_subject.score %}
-                                            {% set best_subject.name = subject %}
-                                            {% set best_subject.score = avg %}
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                                {{ best_subject.name }}
+                            {% if subjects %}
+                                {{ subjects[0] }}
                             {% else %}
                                 N/A
                             {% endif %}
@@ -190,8 +192,13 @@
                         </div>
                         <div class="overview-value" style="font-size: 1.2rem;">
                             {% if scores %}
-                                {% set high_scores = scores|selectattr('score', 'ge', 0.8)|list|length %}
-                                {{ high_scores }} High Scores
+                                {% set high_count = 0 %}
+                                {% for s in scores %}
+                                    {% if s.score >= 0.8 %}
+                                        {% set high_count = high_count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ high_count }} High Scores
                             {% else %}
                                 0
                             {% endif %}
