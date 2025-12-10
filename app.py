@@ -25,6 +25,7 @@ from collections import defaultdict
 from datetime import datetime
 from flask_login import login_required, current_user
 from flask import render_template, redirect, url_for, flash
+import logging
 
 
 # -------------------------------------------------
@@ -54,6 +55,13 @@ login_manager = LoginManager(app)
 login_manager.login_view = "login"
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # -------------------------------------------------
 # Global Notification Count for Navbar (Parents)
@@ -2145,17 +2153,67 @@ def academic_progress():
                 conn.close()
                 return redirect(url_for("academic_progress"))
 
-            # All validations passed, insert record
-            record_date = date(year, month, 1)
-            cursor.execute(
-                """
-                INSERT INTO academic_scores (child_id, subject, score, date)
-                VALUES (%s, %s, %s, %s)
-                """,
-                (child_id, subject, score, record_date),
-            )
-            conn.commit()
-            flash("Academic record added successfully!", "success")
+            # Verify child exists and belongs to current user
+            try:
+                cursor.execute(
+                    """
+                    SELECT c.id FROM children c
+                    WHERE c.id = %s AND c.parent_id = %s
+                    """,
+                    (child_id, current_user.id),
+                )
+                child_record = cursor.fetchone()
+
+                if not child_record:
+                    logger.warning(
+                        f"Attempted to add academic record for invalid child_id={child_id} "
+                        f"by user_id={current_user.id}"
+                    )
+                    flash("Invalid child selection. Please select a child from your profile.", "danger")
+                    session.pop("selected_child", None)
+                    cursor.close()
+                    conn.close()
+                    return redirect(url_for("select_child"))
+
+                # All validations passed, insert record
+                record_date = date(year, month, 1)
+                cursor.execute(
+                    """
+                    INSERT INTO academic_scores (child_id, subject, score, date)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (child_id, subject, score, record_date),
+                )
+                conn.commit()
+                logger.info(
+                    f"Academic record added: child_id={child_id}, subject={subject}, "
+                    f"score={score}, date={record_date} by user_id={current_user.id}"
+                )
+                flash("Academic record added successfully!", "success")
+
+            except mysql.connector.Error as db_err:
+                # Rollback transaction on database error
+                conn.rollback()
+                logger.error(
+                    f"Database error adding academic record: {db_err} "
+                    f"(child_id={child_id}, user_id={current_user.id})"
+                )
+                flash(
+                    "Failed to save academic record due to a database error. "
+                    "Please try again or contact support if the problem persists.",
+                    "danger"
+                )
+            except Exception as e:
+                # Rollback on any other error
+                conn.rollback()
+                logger.error(
+                    f"Unexpected error adding academic record: {e} "
+                    f"(child_id={child_id}, user_id={current_user.id})"
+                )
+                flash(
+                    "An unexpected error occurred. Please try again later.",
+                    "danger"
+                )
         else:
             flash("Please fill all required fields.", "danger")
 
