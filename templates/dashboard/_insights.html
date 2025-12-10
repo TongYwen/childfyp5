@@ -1,41 +1,130 @@
-<class="container-fluid mt-3">
+<div class="container-fluid mt-3 ai-insights-page">
     <h3 class="mb-3">
         AI Insights for {{ selected_child.name }}
     </h3>
 
     <!-- AI SUMMARY CARD -->
-    <div class="card mb-3">
-        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-            <span>AI Summary</span>
-            <div class="d-flex align-items-center gap-2">
-                {% if last_generated %}
-                  <small class="text-white-50">
-                    Last generated: {{ last_generated.strftime('%Y-%m-%d %H:%M') }}
-                  </small>
-                {% endif %}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
 
-                <a href="{{ url_for('ai_insights', regen=1) }}" class="btn btn-sm btn-light">
+        <!-- Top bar: timestamp + buttons (no header bar) -->
+        <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+            <div class="small text-muted">
+                {% if last_generated %}
+                    Last generated: {{ last_generated.strftime('%Y-%m-%d %H:%M') }}
+                {% else %}
+                    No AI report generated yet.
+                {% endif %}
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('ai_insights', regen=1) }}" class="btn btn-sm btn-outline-primary">
                     Regenerate
                 </a>
+                {% if ai_summary %}
+                <button type="button" id="btnPrintAiReport" class="btn btn-outline-secondary btn-sm">
+                    Print
+                </button>
+                {% endif %}
             </div>
         </div>
 
         <div class="card-body">
             {% if ai_summary %}
-            <div id="aiInsightResult">
-                    {{ ai_summary|safe }}
-                </div>
+
+                <!-- PRINTABLE REPORT AREA -->
+                <div id="aiReport" class="ai-report">
+                    <div class="ai-report-header">
+                        <div>
+                            <h4 class="mb-1">ChildGrowth Insights – AI Report</h4>
+                            <div class="small text-muted">
+                                Child: {{ selected_child.name }}
+                                {% if selected_child.age %}
+                                    · Age: {{ selected_child.age }} years
+                                {% endif %}
+                                {% if last_generated %}
+                                    · Generated on {{ last_generated.strftime('%Y-%m-%d %H:%M') }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {# Optional logo:
+                        <img src="{{ url_for('static', filename='img/logo.png') }}"
+                             class="ai-report-logo" alt="Logo">
+                        #}
+                    </div>
+
+                    <hr>
+
+                    <div class="ai-report-body">
+
+                                    <!-- UPPER PART: Academic result overview -->
+                                    <div class="ai-academic-section mb-4">
+                                        <h5 class="mb-2">Academic Overview</h5>
+
+                                        {% if academic_star_data %}
+                                        <div class="row g-2 mb-2">
+                                            {% for stat in academic_star_data %}
+                                            <div class="col-12 col-sm-6 col-md-4">
+                                                <div class="ai-academic-card">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span class="fw-semibold">{{ stat.subject }}</span>
+                                                        <span class="small text-muted">{{ stat.avg }}%</span>
+                                                    </div>
+                                                    <div class="ai-stars mb-1">
+                                                        {% for i in range(1, 6) %}
+                                                            {% if i <= stat.stars %}
+                                                                <i class="bi bi-star-fill"></i>
+                                                            {% else %}
+                                                                <i class="bi bi-star"></i>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </div>
+                                                    <div class="small text-muted text-capitalize">
+                                                        {{ stat.trend }} trend
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+
+                                        <ul class="small mb-0 text-muted">
+                                            {% for stat in academic_star_data %}
+                                                <li>
+                                                    <strong>{{ stat.subject }}</strong>:
+                                                    {{ stat.trend|capitalize }} trend
+                                                    (average {{ stat.avg }}%).
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+
+                                        {% else %}
+                                        <p class="small text-muted mb-0">
+                                            No academic scores have been recorded yet for this child.
+                                        </p>
+                                        {% endif %}
+                                    </div>
+
+                        <hr class="my-3">
+
+                        <!-- LOWER PART: Game-based / learning personality insight (AI) -->
+                        <div class="ai-game-section">
+                            {{ ai_summary|safe }}
+                        </div>
+
+                    </div>
+
+</div>
+
             {% else %}
                 <p class="text-muted mb-0">
-                     No AI insight generated yet. Click <strong>Regenerate</strong> once there are
+                    No AI insight generated yet.<br> Click <strong>Regenerate</strong> once there are
                     some academic scores or mini-game records for this child.
                 </p>
             {% endif %}
         </div>
     </div>
 
-    <!-- Detailed data accordion -->
-    <div class="accordion mt-3" id="insightDataAccordion">
+    <!-- Detailed data accordion (screen only) -->
+    <div class="accordion mt-3 no-print" id="insightDataAccordion">
         <div class="accordion-item">
             <h2 class="accordion-header" id="headingData">
                 <button class="accordion-button collapsed" type="button"
@@ -119,15 +208,21 @@
             </div>
         </div>
     </div>
+</div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnPrint = document.getElementById('btnPrintAiReport');
+    if (btnPrint) {
+        btnPrint.addEventListener('click', function() {
+            document.body.classList.add('print-ai');
+            window.print();
+            // remove class right after print dialog opens
+            setTimeout(function () {
+                document.body.classList.remove('print-ai');
+            }, 0);
+        });
+    }
+});
+</script>
 
-
-
-
-
-
-
-
-
-
-  

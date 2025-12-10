@@ -19,18 +19,18 @@
         </div>
         <!-- END User Management -->
 
-        <!-- Inactive Parent Management -->
+        <!-- Inactive User Management -->
         <div class="col-md-4">
             <a href="{{ url_for('admin_inactive_users') }}" class="text-decoration-none">
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
-                        <h5 class="card-title">Inactive Parent Management</h5>
+                        <h5 class="card-title">Inactive User Management</h5>
                         <p class="card-text">Monitor and manage inactive user accounts.</p>
                     </div>
                 </div>
             </a>
         </div>
-        <!-- END Inactive Parent Management -->
+        <!-- END Inactive User Management -->
 
         <!-- Questionnaires -->
         <div class="col-md-4">
@@ -73,15 +73,23 @@
         </div>
 
 
-        <!-- Children Overview -->
+        <!-- 🔔 Notification Management -->
         <div class="col-md-4">
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Children Overview</h5>
-                    <p class="card-text">View high-level statistics of all children.</p>
+            <a href="{{ url_for('admin_notifications') }}" class="text-decoration-none">
+                <div class="card mb-3 shadow-sm hover-shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">Notification Management</h5>
+                        <p class="card-text">Manage all system notifications.</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
+
+
+
+
+
+        
 
     </div>
 </div>

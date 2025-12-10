@@ -1,4 +1,23 @@
 <div class="container-fluid mt-3">
+
+  <!-- ✅ Intro banner (same style as Mini Games page) -->
+  <div class="card shadow-sm mb-3 no-print">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+      <div>
+        <h5 class="mb-1">Learning Plan for {{ selected_child.name }}</h5>
+        <p class="mb-0 text-muted small">
+          A one-week home learning plan with short, child-friendly activities you can do together every day.
+        </p>
+      </div>
+      <div class="mt-2 mt-sm-0">
+        <span class="badge bg-light text-dark border">
+          Tip: Try to follow the plan, but adjust if {{ selected_child.name }} is tired or not in the mood.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ MAIN BLUE HEADER CARD (WEEKLY PLAN STAYS HERE) -->
   <div class="card shadow-sm mb-3">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
       <span>Personalized Learning Plan for {{ selected_child.name }}</span>
@@ -9,14 +28,22 @@
             {% if use_cached %}(using saved plan){% endif %}
           </small>
         {% endif %}
-        <a href="{{ url_for('learning_plan', regen=1) }}" class="btn btn-sm btn-light">
+
+        <a href="{{ url_for('learning_plan', regen=1) }}" class="btn btn-sm btn-light no-print">
           Regenerate Plan
         </a>
+        <button type="button" id="btnPrintPlan" class="btn btn-sm btn-light no-print">
+          Print Plan
+        </button>
       </div>
     </div>
+
+    <!-- ✅ ONLY WEEKLY ACTION PLAN INSIDE THIS CARD -->
     <div class="card-body">
       {% if plan_html %}
-        {{ plan_html|safe }}
+        <div id="learningPlanReport" class="learning-plan-report">
+          <!-- Weekly Section will stay here -->
+        </div>
       {% else %}
         <p class="text-muted mb-0">
           No learning plan available yet. Please add some data or try again later.
@@ -24,4 +51,76 @@
       {% endif %}
     </div>
   </div>
+
+  <!-- ✅ LONG-TERM STRATEGY OUTSIDE (SEPARATE BOX) -->
+  {% if plan_html %}
+  <div class="card shadow-sm mb-4 learning-plan-longterm" >
+    <div class="card-header bg-success text-white fw-bold">
+      Long-Term Strategy
+    </div>
+    <div class="card-body" id="longTermBox"></div>
+  </div>
+
+  <!-- ✅ Hidden raw AI HTML -->
+  <div id="rawPlanHtml" style="display:none;">
+    {{ plan_html|safe }}
+  </div>
+  {% endif %}
+
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  /* ✅ PRINT */
+  const btn = document.getElementById('btnPrintPlan');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      document.body.classList.add('print-plan');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('print-plan');
+      }, 0);
+    });
+  }
+
+  /* ✅ SPLIT WEEKLY + LONG-TERM */
+  const raw = document.getElementById('rawPlanHtml');
+  const weeklyContainer = document.getElementById('learningPlanReport');
+  const longTermBox = document.getElementById('longTermBox');
+
+  if (!raw || !weeklyContainer || !longTermBox) return;
+
+  const headings = raw.querySelectorAll('h3');
+  let weeklyH3 = null;
+  let longTermH3 = null;
+
+  headings.forEach(h3 => {
+    const t = h3.textContent.toLowerCase();
+    if (t.includes('weekly action plan')) weeklyH3 = h3;
+    if (t.includes('long-term strategy')) longTermH3 = h3;
+  });
+
+  /* ✅ Extract weekly table */
+  let weeklyTable = weeklyH3?.nextElementSibling;
+  while (weeklyTable && weeklyTable.tagName !== 'TABLE') {
+    weeklyTable = weeklyTable.nextElementSibling;
+  }
+
+  if (weeklyH3 && weeklyTable) {
+    weeklyContainer.appendChild(weeklyH3.cloneNode(true));
+    weeklyContainer.appendChild(weeklyTable.cloneNode(true));
+  }
+
+  /* ✅ Extract long-term list */
+  let longTermList = longTermH3?.nextElementSibling;
+  while (longTermList && longTermList.tagName !== 'UL') {
+    longTermList = longTermList.nextElementSibling;
+  }
+
+  if (longTermH3 && longTermList) {
+    longTermBox.appendChild(longTermList.cloneNode(true));
+  }
+
+});
+</script>

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Manage Notifications</h2>
+
+  <!-- Create new broadcast notification -->
+  <div class="card mb-4">
+    <div class="card-header">
+      Create Announcement (send to all parents)
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin_notifications') }}">
+        <div class="mb-3">
+          <label class="form-label">Title</label>
+          <input type="text" name="title" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Message</label>
+          <textarea name="message" class="form-control" rows="3" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          Send to all parents
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Existing notifications -->
+  <div class="card">
+    <div class="card-header">
+      Latest Notifications
+    </div>
+    <div class="card-body p-0">
+      {% if notifications %}
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Parent</th>
+            <th>Child</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Priority</th>
+            <th>Created</th>
+            <th>Created By</th>
+            <th>Read?</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for n in notifications %}
+          <tr>
+            <td>{{ n.id }}</td>
+            <td>{{ n.parent_name }}</td>
+            <td>{{ n.child_name or '-' }}</td>
+            <td>{{ n.title }}</td>
+            <td>{{ n.type }}</td>
+            <td>{{ n.priority }}</td>
+            <td>{{ n.created_at }}</td>
+            <td>{{ n.admin_name or 'System' }}</td>
+            <td>
+              {% if n.is_read %}
+                <span class="badge bg-success">Read</span>
+              {% else %}
+                <span class="badge bg-secondary">Unread</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="POST"
+                    action="{{ url_for('admin_archive_notification', notif_id=n.id) }}"
+                    onsubmit="return confirm('Archive this notification?');">
+                <button class="btn btn-sm btn-outline-danger">
+                  Archive
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="p-3 mb-0 text-muted">No notifications found.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

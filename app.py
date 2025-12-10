@@ -21,6 +21,11 @@ import os
 import json
 from dotenv import load_dotenv
 import time
+from collections import defaultdict
+from datetime import datetime
+from flask_login import login_required, current_user
+from flask import render_template, redirect, url_for, flash
+
 
 # -------------------------------------------------
 # App & extensions
@@ -50,6 +55,23 @@ login_manager.login_view = "login"
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
+# -------------------------------------------------
+# Global Notification Count for Navbar (Parents)
+# -------------------------------------------------
+@app.context_processor
+def inject_notification_count():
+    from flask_login import current_user
+
+    if current_user.is_authenticated and getattr(current_user, "role", None) == "parent":
+        try:
+            count = get_unread_notification_count(current_user.id)
+        except Exception:
+            count = 0
+        return dict(notification_unread_count=count)
+
+    return dict(notification_unread_count=0)
+
+
 # Initialize APScheduler for automated tasks
 scheduler = APScheduler()
 app.config['SCHEDULER_API_ENABLED'] = False  # Disable API for security
@@ -59,8 +81,9 @@ EMAIL_REGEX = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 ADMIN_PASSKEY = "child1234"
 
 # -------------- GEMINI + BENCHMARK SETUP --------------
+# Google Gemini AI Configuration
 genai.configure(api_key=app.config["GOOGLE_API_KEY"])
-
+# Load developmental milestones benchmark data
 BENCHMARK_PATH = "static/data/developmental_milestones.csv"
 benchmark_df = pd.read_csv(BENCHMARK_PATH)
 benchmark_df.columns = [c.strip().capitalize() for c in benchmark_df.columns]
@@ -77,6 +100,392 @@ def get_db_conn():
         database=app.config["DB_NAME"],
     )
 
+
+def create_notification(
+    parent_id,
+    title,
+    message,
+    child_id=None,
+    notif_type="SYSTEM",
+    priority="NORMAL",
+    link_type=None,
+    link_id=None,
+    link_url=None,
+    created_by_admin_id=None
+):
+    """
+    Insert one notification into the DB.
+    """
+    conn = get_db_conn()
+    cursor = conn.cursor()
+
+    sql = """
+        INSERT INTO notifications
+        (parent_id, child_id, title, message, type, priority,
+         is_read, is_archived, created_at,
+         link_type, link_id, link_url, created_by_admin_id)
+        VALUES (%s, %s, %s, %s, %s, %s,
+                0, 0, %s,
+                %s, %s, %s, %s)
+    """
+
+    now = datetime.now()
+
+    cursor.execute(sql, (
+        parent_id,
+        child_id,
+        title,
+        message,
+        notif_type,
+        priority,
+        now,
+        link_type,
+        link_id,
+        link_url,
+        created_by_admin_id
+    ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_notifications_for_parent(parent_id, limit=30):
+    conn = get_db_conn()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM notifications
+        WHERE parent_id = %s AND is_archived = 0
+        ORDER BY created_at DESC
+        LIMIT %s
+        """,
+        (parent_id, limit)
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return rows
+
+
+def get_unread_notification_count(parent_id):
+    conn = get_db_conn()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM notifications
+        WHERE parent_id = %s AND is_archived = 0 AND is_read = 0
+        """,
+        (parent_id,)
+    )
+    (count,) = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return count or 0
+
+
+def mark_notification_as_read(notif_id, parent_id):
+    conn = get_db_conn()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        UPDATE notifications
+        SET is_read = 1, read_at = NOW()
+        WHERE id = %s AND parent_id = %s
+        """,
+        (notif_id, parent_id)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def create_today_learning_plan_reminder(parent_id, child_id, child_name):
+    """
+    Create ONE reminder per day per child,
+    BUT ONLY if that child already has a learning plan (ai_results.module = 'learning_plan').
+    """
+    today = date.today()
+    weekday = today.strftime("%A")
+
+    # 1) Check if this child has any learning plan generated
+    conn = get_db_conn()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT id
+        FROM ai_results
+        WHERE child_id = %s
+          AND module = 'learning_plan'
+        LIMIT 1
+        """,
+        (child_id,),
+    )
+    has_plan = cursor.fetchone()
+    if not has_plan:
+        # no learning plan yet → no reminder
+        cursor.close()
+        conn.close()
+        return
+
+    # 2) Check if we've already created today's reminder for this child
+    cursor.execute(
+        """
+        SELECT id
+        FROM notifications
+        WHERE parent_id = %s
+          AND child_id = %s
+          AND type = 'LEARNING_PLAN'
+          AND DATE(created_at) = CURDATE()
+        LIMIT 1
+        """,
+        (parent_id, child_id),
+    )
+    existing = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if existing:
+        return  # already have today's reminder
+
+    # 3) Create the reminder
+    title = f"Today’s learning plan for {child_name}"
+    message = (
+        f"Today is {weekday}. Please follow the activities for {weekday} "
+        f"in {child_name}'s Weekly Learning Plan."
+    )
+
+    create_notification(
+        parent_id=parent_id,
+        child_id=child_id,
+        title=title,
+        message=message,
+        notif_type="LEARNING_PLAN",
+        priority="NORMAL",
+        link_type="LEARNING_PLAN",
+        link_id=None,
+        link_url=url_for("learning_plan"),
+    )
+
+
+def get_notifications_for_admin(include_archived=False, limit=100):
+    """Return latest notifications with parent/child/admin names for admin view."""
+    conn = get_db_conn()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT 
+            n.*,
+            p.name AS parent_name,
+            c.name AS child_name,
+            a.name AS admin_name
+        FROM notifications n
+        JOIN users p ON n.parent_id = p.id
+        LEFT JOIN children c ON n.child_id = c.id
+        LEFT JOIN users a ON n.created_by_admin_id = a.id
+        WHERE 1 = 1
+    """
+    params = []
+
+    if not include_archived:
+        query += " AND n.is_archived = 0"
+
+    query += " ORDER BY n.created_at DESC LIMIT %s"
+    params.append(limit)
+
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return rows
+
+
+def notify_all_parents_new_resource(title, rtype, link_url):
+    """
+    Create one notification for every active parent
+    when a new resource is added by admin.
+    """
+    conn = get_db_conn()
+    cursor = conn.cursor(dictionary=True)
+
+    # get all active parents
+    cursor.execute(
+        "SELECT id, name FROM users WHERE role = 'parent' AND is_active = 1"
+    )
+    parents = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    # send a notification to each parent
+    # rtype is e.g. "video", "book", "app"...
+    nice_type = rtype.capitalize()
+    for p in parents:
+        msg = (
+            f'A new {nice_type} resource "{title}" has been added in the '
+            "Educational Resources Hub. Open the hub to explore it."
+        )
+        create_notification(
+            parent_id=p["id"],
+            child_id=None,
+            title=f"New {nice_type} resource: {title}",
+            message=msg,
+            notif_type="RESOURCES",
+            priority="NORMAL",
+            link_type="RESOURCES",
+            link_id=None,
+            link_url=link_url,
+            created_by_admin_id=None,   # or current_user.id if you want
+        )
+
+
+# -------------------------------------------------
+# Product Recommendation Helpers
+# -------------------------------------------------
+def generate_product_links(keywords, product_type):
+    """
+    Generate search URLs for multiple e-commerce platforms based on keywords.
+    """
+    import urllib.parse
+
+    search_query = urllib.parse.quote_plus(keywords)
+
+    links = {
+        'amazon': f"https://www.amazon.com/s?k={search_query}",
+        'shopee': f"https://shopee.com.my/search?keyword={search_query}",
+        'lazada': f"https://www.lazada.com.my/catalog/?q={search_query}"
+    }
+
+    return links
+
+
+def extract_products_from_response(full_response, child_id, cursor):
+    """
+    Extract product recommendations from AI response and store in database.
+    Returns cleaned HTML (without product tags) and list of product dictionaries.
+    """
+    import re
+
+    # Pattern to match product blocks
+    product_pattern = r'\[PRODUCT_START\](.*?)\[PRODUCT_END\]'
+    product_matches = re.findall(product_pattern, full_response, re.DOTALL)
+
+    products = []
+    tutoring_result_id = None
+
+    for product_text in product_matches:
+        # Parse product fields
+        product_data = {}
+
+        # Extract Name
+        name_match = re.search(r'Name:\s*(.+?)(?:\n|$)', product_text)
+        if name_match:
+            product_data['name'] = name_match.group(1).strip()
+
+        # Extract Type
+        type_match = re.search(r'Type:\s*(.+?)(?:\n|$)', product_text)
+        if type_match:
+            product_data['type'] = type_match.group(1).strip().lower()
+
+        # Extract Category
+        category_match = re.search(r'Category:\s*(.+?)(?:\n|$)', product_text)
+        if category_match:
+            product_data['category'] = category_match.group(1).strip().lower()
+
+        # Extract Subject
+        subject_match = re.search(r'Subject:\s*(.+?)(?:\n|$)', product_text)
+        if subject_match:
+            product_data['subject'] = subject_match.group(1).strip().lower()
+
+        # Extract Learning Style
+        learning_style_match = re.search(r'Learning Style:\s*(.+?)(?:\n|$)', product_text)
+        if learning_style_match:
+            product_data['learning_style'] = learning_style_match.group(1).strip().lower()
+
+        # Extract Age
+        age_match = re.search(r'Age:\s*(.+?)(?:\n|$)', product_text)
+        if age_match:
+            product_data['age_range'] = age_match.group(1).strip()
+
+        # Extract Price
+        price_match = re.search(r'Price:\s*RM\s*([\d.]+)', product_text)
+        if price_match:
+            product_data['price'] = float(price_match.group(1))
+
+        # Extract Why (description)
+        why_match = re.search(r'Why:\s*(.+?)(?:\nKeywords:|$)', product_text, re.DOTALL)
+        if why_match:
+            product_data['why'] = why_match.group(1).strip()
+
+        # Extract Keywords
+        keywords_match = re.search(r'Keywords:\s*(.+?)(?:\nPriority:|$)', product_text, re.DOTALL)
+        if keywords_match:
+            product_data['keywords'] = keywords_match.group(1).strip()
+
+        # Extract Priority
+        priority_match = re.search(r'Priority:\s*(.+?)(?:\n|$)', product_text)
+        if priority_match:
+            product_data['priority'] = priority_match.group(1).strip().lower()
+
+        # Only add if we have minimum required fields
+        if 'name' in product_data and 'keywords' in product_data:
+            products.append(product_data)
+
+    # Remove product tags from HTML response
+    cleaned_html = re.sub(product_pattern, '', full_response, flags=re.DOTALL)
+
+    # Store products in database if any were found
+    if products and cursor:
+        for prod in products:
+            # Generate product links
+            links = generate_product_links(
+                prod.get('keywords', prod['name']),
+                prod.get('type', 'book')
+            )
+
+            # Calculate price range
+            price = prod.get('price', 0.0)
+            if price <= 20:
+                price_range = 'budget'
+            elif price <= 50:
+                price_range = 'mid_range'
+            else:
+                price_range = 'premium'
+
+            try:
+                cursor.execute("""
+                    INSERT INTO product_recommendations
+                    (child_id, tutoring_result_id, product_name, product_type, category,
+                     subject, learning_style, description, age_range, price_myr, price_range,
+                      amazon_url, shopee_url, lazada_url, priority, reason,
+                     created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                """, (
+                    child_id,
+                    tutoring_result_id,
+                    prod['name'],
+                    prod.get('type', 'book'),
+                    prod.get('category', 'other'),
+                    prod.get('subject', 'general'),
+                    prod.get('learning_style', 'mixed'),
+                    prod.get('keywords', ''),
+                    prod.get('age_range', ''),
+                    price,
+                    price_range,
+                    links['amazon'],
+                    links['shopee'],
+                    links['lazada'],
+                    prod.get('priority', 'medium'),
+                    prod.get('why', '')
+                ))
+            except Exception as e:
+                # Log error but continue processing
+                print(f"Error storing product: {e}")
+
+    return cleaned_html.strip(), products
 
 # -------------------------------------------------
 # Product Recommendation Helpers
@@ -1345,6 +1754,13 @@ def dashboard():
     cursor.close()
     conn.close()
 
+    if getattr(current_user, "role", None) == "parent":
+        create_today_learning_plan_reminder(
+            parent_id=current_user.id,
+            child_id=selected_child["id"],
+            child_name=selected_child["name"],
+        )    
+
     return render_template(
         "dashboard.html",
         content_template="dashboard/_dashboard.html",
@@ -1803,6 +2219,18 @@ def academic_progress():
                 sub: round(sum(vals) / len(vals), 1) for sub, vals in subject_scores.items()
             }
 
+    # Define default subjects for preschool
+    default_subjects = [
+        "English",
+        "Chinese",
+        "Malay",
+        "Mathematics",
+        "Science"
+    ]
+
+    # Merge default subjects with user's existing subjects
+    user_subjects = {row["subject"] for row in scores}
+    subjects = default_subjects + [s for s in user_subjects if s not in default_subjects]
 
     cursor.close()
     conn.close()
@@ -2723,7 +3151,6 @@ def delete_learning_observation(observation_id):
 
 # -------------------------------------------------
 # TUTORING, INSIGHTS, PLAN, RESOURCES
-# (unchanged logic, just using get_db_conn)
 # -------------------------------------------------
 
 # --- TUTORING ---
@@ -2997,6 +3424,69 @@ def ai_insights():
 
     game_results = cursor.fetchall()
 
+    # ----- Academic star ratings + trend -----
+    subject_scores = defaultdict(list)
+    for row in scores:
+        sc = row["score"]
+        if sc is None:
+            continue
+        subject_scores[row["subject"]].append((row["date"], sc))
+
+    academic_star_data = []
+
+    def score_to_stars(avg):
+        if avg is None:
+            return 0
+        if avg >= 85:
+            return 5
+        elif avg >= 70:
+            return 4
+        elif avg >= 55:
+            return 3
+        elif avg >= 40:
+            return 2
+        else:
+            return 1
+
+    academic_overview_bits = []
+
+    for subject, entries in subject_scores.items():
+        # sort by date so we can see trend
+        entries.sort(key=lambda x: x[0])
+        scores_only = [s for _, s in entries]
+        avg = sum(scores_only) / len(scores_only)
+        first = scores_only[0]
+        last = scores_only[-1]
+        delta = last - first if len(scores_only) > 1 else 0
+
+        if delta > 5:
+            trend = "improving"
+        elif delta < -5:
+            trend = "declining"
+        else:
+            trend = "fairly stable"
+
+        stars = score_to_stars(avg)
+
+        academic_star_data.append({
+            "subject": subject,
+            "avg": round(avg, 1),
+            "stars": stars,
+            "trend": trend,
+        })
+
+        academic_overview_bits.append(
+            f"{subject}: average {avg:.1f}, trend {trend.lower()}."
+        )
+
+    if academic_overview_bits:
+        academic_insight_summary = " ".join(academic_overview_bits)
+    else:
+        academic_insight_summary = (
+            "No academic scores have been recorded yet, so an overview "
+            "of subject performance is not available."
+        )
+
     strengths = []
     weaknesses = []
     for row in scores:
@@ -3009,11 +3499,11 @@ def ai_insights():
         elif score <= 50:
             weaknesses.append(f"{subject} needs improvement (score {score}).")
 
+    # Build payload for caching AFTER the loop
     payload_obj = {
         "scores": scores,
         "games": game_results,
     }
-
     data_payload = json.dumps(payload_obj, default=str, ensure_ascii=False)
 
     cursor.execute(
@@ -3022,8 +3512,10 @@ def ai_insights():
     )
     cached = cursor.fetchone()
 
-    regen = request.args.get("regen")
-    use_cached = cached and cached["data"] == data_payload and not regen
+    regen_param = request.args.get("regen", default=None)
+    regen = str(regen_param) == "1"
+
+    use_cached = bool(cached) and cached["data"] == data_payload and not regen
 
     ai_summary = None
     last_generated = cached["updated_at"] if cached else None
@@ -3031,8 +3523,8 @@ def ai_insights():
     if use_cached:
         ai_summary = cached["result"]
     else:
-       # Only call AI if we have at least scores or game data
-        if scores or game_results:
+        # Only call AI if we have at least scores or game data
+        if scores and game_results:
             try:
                 # Academic scores text
                 score_lines = [
@@ -3068,60 +3560,89 @@ def ai_insights():
                 )
                     child_name = child["name"]
 
-                    prompt = f"""
-                You are an educational psychologist for preschool children.
+                child_name = child["name"]
 
-                CHILD:
-                - Name: {child_name}
-                - Age: {child.get('age', 'unknown')}
+                prompt = f"""
+You are an educational psychologist specializing in understanding learning patterns and cognitive styles in early childhood.
 
-                ACADEMIC SCORES (may be missing):
-                {scores_text}
+Based on the following observations:
 
-                MINI EDUCATIONAL GAME PERFORMANCE (counting, vocabulary, spelling):
-                {games_text}
+ACADEMIC SCORES:
+{scores_text}
 
-                INTERPRETATION NOTES:
-                - Counting games reflect early maths and number sense, logic, and basic problem-solving.
-                - Vocabulary games reflect word–picture matching and receptive language.
-                - Spelling games reflect phonics, letter–sound mapping, and early writing skills.
+MINI EDUCATIONAL GAME PERFORMANCE:
+{games_text}
 
-                TASK:
-                Using ONLY the information above, create a short, parent-friendly insight.
+CHILD:
+- Name: {child_name}
+- Age: {child.get('age', 'unknown')}
 
-                OUTPUT FORMAT:
-                Return VALID HTML only, using exactly this structure:
+TASK:
+Create a warm, encouraging, parent-friendly interpretation of how {child_name} approaches learning.
 
-                <h5>Quick Snapshot</h5>
-                <ul>
-                <li><strong>Main strengths:</strong> 1–2 short phrases combining academic AND game performance
-                    (e.g., "very confident with numbers and quick to learn new game rules").</li>
-                <li><strong>Key areas to support:</strong> 1–2 short phrases
-                    (e.g., "spelling and confident English speaking still developing").</li>
-                <li><strong>Overall progress:</strong> 1 short sentence about improvement, stability, or mixed pattern.</li>
-                </ul>
+IMPORTANT:
+Focus on *learning personality*, not evaluation:
+- attention patterns
+- curiosity style
+- problem-solving approach
+- emotional engagement in tasks
+- persistence vs frustration
+- response to feedback
+- visual / auditory / tactile preferences
 
-                <h5>Detailed Insight</h5>
-                <p>Write a warm paragraph of 4–6 sentences directly to {child_name}'s parents.
-                Explain:
-                - what the scores and game patterns suggest about how {child_name} thinks and learns,
-                - why certain areas look strong,
-                - why some areas need gentle support.
-                Use simple, non-technical language and keep the tone encouraging.</p>
+FORMAT (VALID HTML ONLY):
 
-                <h6>Suggested Activities at Home</h6>
-                <ul>
-                <li>Tip 1 based on the main strengths and how to build on them.</li>
-                <li>Tip 2 focused on one weaker area (e.g., language or spelling) with a very practical daily activity.</li>
-                <li>Tip 3 that involves play or mini-games to keep learning fun.</li>
-                </ul>
+<div class="ai-report-cards">
 
-                IMPORTANT RULES:
-                - Total length (all sections) must stay under 180 words.
-                - Do NOT mention exact score numbers or percentages.
-                - Do NOT mention 'database', 'tables', or that you are an AI.
-                - If academic scores are missing, focus on game performance and do not apologise for missing data.
-                """
+  <div class="ai-card ai-card-snapshot">
+    <h3>Learning Personality Summary</h3>
+    <ul>
+      <li><strong>Thinking style:</strong> A short description (analytical / exploratory / intuitive / systematic / imaginative).</li>
+      <li><strong>Motivation patterns:</strong> What draws {child_name} into learning.</li>
+      <li><strong>Supportive environment:</strong> What kinds of settings help {child_name} thrive (quiet, visual, interactive, playful).</li>
+    </ul>
+  </div>
+
+  <div class="ai-card ai-card-strengths">
+    <h3>Learning Strengths</h3>
+    <ul>
+      <li>Mention tendencies like pattern recognition, quick game rule comprehension, persistence, logical thinking.</li>
+      <li>Ability to retain learned concepts or discover new solutions.</li>
+    </ul>
+  </div>
+
+  <div class="ai-card ai-card-areas">
+    <h3>Challenges & Frustration Triggers</h3>
+    <ul>
+      <li>Possible situations where {child_name} may feel overwhelmed or lose focus.</li>
+      <li>Types of tasks that may require extra guidance or scaffolding.</li>
+    </ul>
+  </div>
+
+  <div class="ai-card ai-card-style">
+    <h3>Best Ways to Support Learning</h3>
+    <p>Provide 3–4 short sentences describing how parents can naturally facilitate learning through environment, pacing, choice-making, and emotional reassurance — without referencing products or teaching methods.</p>
+  </div>
+
+  <div class="ai-card ai-card-activities">
+    <h3>Encouraging Learning Atmosphere</h3>
+    <ul>
+      <li>How to create enthusiasm about learning.</li>
+      <li>How to encourage confidence.</li>
+      <li>How to reduce performance pressure and anxiety.</li>
+    </ul>
+  </div>
+
+</div>
+
+RULES:
+- Do NOT list specific weaknesses as deficiencies.
+- Avoid medical or diagnostic language.
+- Do NOT mention products or specific tools.
+- Keep tone positive and empowering.
+- Stay under 170 words total.
+"""
+
 
                 model = genai.GenerativeModel("gemini-2.5-flash")
                 response = model.generate_content(prompt)
@@ -3166,8 +3687,11 @@ def ai_insights():
         weaknesses=weaknesses,
         ai_summary=ai_summary,
         last_generated=last_generated,
+        academic_star_data=academic_star_data,
+        academic_insight_summary=academic_insight_summary,
         active="insights",
     )
+
 
 
 # --- LEARNING PLAN ---
@@ -3245,8 +3769,11 @@ def learning_plan():
     )
     cached = cursor.fetchone()
 
-    regen = request.args.get("regen")
-    use_cached = cached and cached["data"] == data_payload and not regen
+# treat regen as a boolean: only true when ?regen=1
+    regen_flag = request.args.get("regen") == "1"
+
+    use_cached = cached and cached["data"] == data_payload and not regen_flag
+
 
     plan_html = None
     last_generated = cached["updated_at"] if cached else None
@@ -3286,19 +3813,13 @@ OUTPUT REQUIREMENTS (VERY IMPORTANT):
 - Return HTML ONLY (no Markdown, no explanations outside HTML).
 - Use this exact structure:
 
-<h3>Learning Plan Summary</h3>
-<p>Write 3–6 warm, parent-friendly sentences describing:
-- What the child is doing well
-- What to focus on this week
-- Overall encouragement for the family.
-Do NOT mention exact scores or percentages.</p>
-
 <h3>Weekly Action Plan</h3>
 <table class="table table-striped">
   <thead>
     <tr><th>Day</th><th>Recommended Activities</th></tr>
   </thead>
   <tbody>
+    <!-- You must generate 7 rows: Monday to Sunday -->
   </tbody>
 </table>
 
@@ -3307,12 +3828,25 @@ Do NOT mention exact scores or percentages.</p>
   <li>3–5 bullet points about habits, routines, and ways parents can support the child over the next few months.</li>
 </ul>
 
-RULES:
-- Make activities short (around 10–20 minutes each) and realistic for a preschool child.
-- Align activities with the child's likely learning style if that information is available.
-- Use simple, encouraging language that Malaysian parents can easily understand.
+STRICT RULES FOR THE WEEKLY ACTION PLAN:
+- Create EXACTLY 7 table rows in the <tbody>, one for each day: Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday.
+- For each day, create EXACTLY 3 activities.
+- Put the activities for that day inside a single <ol> list in the second <td>.
+- Each activity MUST follow this format:
+  Title (Duration) – one short action sentence.
+- Duration must be 10–20 minutes, written like "(15 min)".
+- Each activity sentence MUST be BRIEF: maximum about 15–18 words.
+- Use ONLY <ol> and <li> inside the activities cell. Do NOT use <p> or <br> between items.
+- Do NOT write long explanations. No extra paragraphs inside the table cells.
+- Language must be simple, clear, and encouraging, suitable for Malaysian parents of preschool children.
 - Do NOT mention exam scores, percentages, or grade labels directly.
+
+GENERAL RULES:
+- Align activities with the child's likely learning style if that information is available.
+- Focus on practical home-based activities using common materials (books, toys, daily routines).
+- Keep the tone supportive and positive.
 """
+
 
                 model = genai.GenerativeModel("gemini-2.5-flash")
                 response = model.generate_content(prompt)
@@ -3338,6 +3872,11 @@ RULES:
                     )
                 conn.commit()
                 last_generated = datetime.now()
+
+                if regen_flag:
+                    cursor.close()
+                    conn.close()
+                    return redirect(url_for("learning_plan"))
 
             except Exception as e:
                 app.logger.error(f"Learning plan AI error: {e}")
@@ -3418,15 +3957,9 @@ def resources_hub():
     if selected_type not in RESOURCE_TYPES:
         selected_type = ""
 
-    # 4) Load resources from DB
+    # 3) Load resources from DB (NO age filtering now)
     params = []
     query = "SELECT * FROM resources WHERE 1=1"
-
-    # Filter by age range if available
-    if child_age is not None:
-        query += " AND (age_min IS NULL OR age_min <= %s)"
-        query += " AND (age_max IS NULL OR age_max >= %s)"
-        params.extend([child_age, child_age])
 
     # Filter by type if chosen
     if selected_type:
@@ -3458,6 +3991,10 @@ def resources_hub():
         selected_type=selected_type,
         active="resources",
     )
+
+
+
+
 
 @app.route("/dashboard/games")
 @login_required
@@ -3514,11 +4051,8 @@ def dashboard_games():
         SELECT *
         FROM games
         WHERE is_active = 1
-          AND (age_min IS NULL OR age_min <= %s)
-          AND (age_max IS NULL OR age_max >= %s)
-        ORDER BY created_at DESC
-        """,
-        (child_age, child_age),
+        ORDER BY title
+        """
     )
     games = cursor.fetchall()
     cursor.close()
@@ -3629,6 +4163,114 @@ def save_game_result():
     return {"success": True}, 200
 
 
+@app.route("/parent/notifications")
+@login_required
+def parent_notifications():
+    # only parents use this page (adjust if your role field is different)
+    if getattr(current_user, "role", None) != "parent":
+        flash("Access denied.", "danger")
+        return redirect(url_for("dashboard"))
+
+    notifications = get_notifications_for_parent(current_user.id)
+    return render_template("parent_notifications.html", notifications=notifications)
+
+
+@app.route("/parent/notifications/<int:notif_id>/open")
+@login_required
+def open_notification(notif_id):
+    if getattr(current_user, "role", None) != "parent":
+        flash("Access denied.", "danger")
+        return redirect(url_for("dashboard"))
+
+    # 1) mark as read
+    mark_notification_as_read(notif_id, current_user.id)
+
+    # 2) fetch notification to know where to redirect
+    conn = get_db_conn()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT * FROM notifications WHERE id = %s AND parent_id = %s",
+        (notif_id, current_user.id)
+    )
+    notif = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not notif:
+        flash("Notification not found.", "warning")
+        return redirect(url_for("parent_notifications"))
+
+    # 3) handle redirection based on link_type / link_url
+    if notif["link_url"]:
+        return redirect(notif["link_url"])
+
+    lt = notif.get("link_type")
+    lid = notif.get("link_id")
+
+    # adjust endpoints based on your real routes
+    if lt == "AI_INSIGHT":
+        return redirect(url_for("ai_insights"))
+    elif lt == "SCORES":
+        return redirect(url_for("academic_progress"))
+    elif lt == "GAME":
+        return redirect(url_for("games_history"))  # TODO
+    elif lt == "LEARNING_PLAN":
+        return redirect(url_for("learning_plan"))  # TODO
+    elif lt == "RESOURCES":
+        return redirect(url_for("resources_hub"))  # TODO
+
+    # fallback
+    return redirect(url_for("parent_notifications"))
+
+@app.route("/parent/notifications/<int:notif_id>/delete", methods=["POST"])
+@login_required
+def delete_notification(notif_id):
+    # Only parents can delete their own notifications
+    if getattr(current_user, "role", None) != "parent":
+        flash("Access denied.", "danger")
+        return redirect(url_for("dashboard"))
+
+    conn = get_db_conn()
+    cursor = conn.cursor()
+
+    # Soft delete: mark as archived, but only if it belongs to this parent
+    cursor.execute(
+        """
+        UPDATE notifications
+        SET is_archived = 1
+        WHERE id = %s AND parent_id = %s
+        """,
+        (notif_id, current_user.id),
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash("Notification removed.", "success")
+    return redirect(url_for("parent_notifications"))
+
+
+
+@app.route("/debug/create_test_notification")
+@login_required
+def debug_create_notification():
+    if getattr(current_user, "role", None) != "parent":
+        flash("Only parent test here.", "warning")
+        return redirect(url_for("dashboard"))
+
+    create_notification(
+        parent_id=current_user.id,
+        child_id=None,
+        title="Test Notification",
+        message="This is a test notification to check the module.",
+        notif_type="SYSTEM",
+        priority="NORMAL"
+    )
+    flash("Test notification created.", "success")
+    return redirect(url_for("parent_notifications"))
+
+
+
 # -------------------------------------------------
 # ADMIN AREA
 # -------------------------------------------------
@@ -3646,6 +4288,7 @@ def admin_users():
     search = request.args.get("q", "").strip()
     sort_by = request.args.get("sort", "created_at")
     order = request.args.get("order", "desc")
+
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 10, type=int)
 
@@ -3661,6 +4304,7 @@ def admin_users():
     # Validate pagination parameters
     if page < 1:
         page = 1
+
     if per_page not in [10, 25, 50, 100]:
         per_page = 10
 
@@ -3686,6 +4330,7 @@ def admin_users():
         """,
         params,
     )
+
     total = cursor.fetchone()["total"]
 
     # Calculate pagination
@@ -3694,7 +4339,7 @@ def admin_users():
 
     # Build ORDER BY clause
     order_clause = f"ORDER BY {sort_by} {order.upper()}"
-
+ 
     # Get paginated results
     cursor.execute(
         f"""
@@ -3722,7 +4367,7 @@ def admin_users():
         total=total,
         total_pages=total_pages,
     )
-
+  
 
 @app.route("/admin/users/<int:user_id>/edit", methods=["GET", "POST"])
 @login_required
@@ -3818,30 +4463,6 @@ def admin_delete_user(user_id):
     conn = get_db_conn()
     cursor = conn.cursor()
 
-    # Check if the user being deleted is an admin
-    cursor.execute(
-        "SELECT role FROM users WHERE id = %s", (user_id,)
-    )
-    user_result = cursor.fetchone()
-
-    if not user_result:
-        cursor.close()
-        conn.close()
-        flash("User not found.", "danger")
-        return redirect(url_for("admin_users"))
-
-    user_role = user_result[0]
-
-    # Prevent deletion of admin accounts
-    if normalize_role(user_role) == "admin":
-        cursor.close()
-        conn.close()
-        flash(
-            "Admin accounts cannot be deleted. Only parent accounts can be removed from the system.",
-            "danger",
-        )
-        return redirect(url_for("admin_users"))
-
     cursor.execute(
         "SELECT COUNT(*) FROM children WHERE parent_id = %s", (user_id,)
     )
@@ -3935,6 +4556,13 @@ def admin_create_resource():
 
         cursor.close()
         conn.close()
+
+        # 🔔 NEW: send notification to all parents
+        notify_all_parents_new_resource(
+            title=title,
+            rtype=rtype,
+            link_url=url_for("resources_hub")
+        )
 
         flash("Resource created successfully.", "success")
         return redirect(url_for("admin_resources"))
@@ -4041,6 +4669,80 @@ def admin_delete_resource(resource_id):
 
     flash("Resource deleted.", "success")
     return redirect(url_for("admin_resources"))
+
+
+# -------------------------------------------------
+# ADMIN - NOTIFICATIONS MANAGEMENT
+# -------------------------------------------------
+@app.route("/admin/notifications", methods=["GET", "POST"])
+@login_required
+@roles_required("admin")
+def admin_notifications():
+    conn = get_db_conn()
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == "POST":
+        # Simple broadcast announcement to ALL parents
+        title = request.form.get("title", "").strip()
+        message = request.form.get("message", "").strip()
+
+        if not title or not message:
+            flash("Title and message are required.", "danger")
+        else:
+            # get all parents
+            cursor.execute(
+                "SELECT id FROM users WHERE LOWER(role) = 'parent'"
+            )
+            parents = cursor.fetchall()
+
+            for row in parents:
+                pid = row["id"]
+                create_notification(
+                    parent_id=pid,
+                    child_id=None,
+                    title=title,
+                    message=message,
+                    notif_type="SYSTEM",
+                    priority="NORMAL",
+                    link_type=None,
+                    link_id=None,
+                    link_url=None,
+                    created_by_admin_id=current_user.id,
+                )
+
+            flash(
+                f"Notification sent to {len(parents)} parent account(s).",
+                "success",
+            )
+
+    cursor.close()
+    conn.close()
+
+    notifications = get_notifications_for_admin(include_archived=False, limit=100)
+
+    return render_template(
+        "admin/notifications.html",
+        notifications=notifications,
+    )
+
+
+@app.route("/admin/notifications/<int:notif_id>/archive", methods=["POST"])
+@login_required
+@roles_required("admin")
+def admin_archive_notification(notif_id):
+    conn = get_db_conn()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE notifications SET is_archived = 1 WHERE id = %s",
+        (notif_id,),
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash("Notification archived.", "success")
+    return redirect(url_for("admin_notifications"))
+
 
 
 
@@ -4183,12 +4885,6 @@ def admin_create_test():
         conn = get_db_conn()
         cursor = conn.cursor()
 
-        # 🔴 OLD: user_id = NULL  (causes error)
-        # cursor.execute(
-        #     "INSERT INTO tests (name, user_id) VALUES (%s, NULL)", (name,)
-        # )
-
-        # ✅ NEW: store the ID of the logged-in admin
         cursor.execute(
             "INSERT INTO tests (name, user_id) VALUES (%s, %s)",
             (name, current_user.id),
@@ -4216,8 +4912,6 @@ def admin_create_test():
         return redirect(url_for("admin_tests"))
 
     return render_template("admin/create_test.html")
-
-
 
 
 @app.route("/admin/tests/<int:test_id>/edit", methods=["GET", "POST"])

@@ -227,253 +227,503 @@ html, body {
   }
 }
 
-/* ===================================================
-   Product Recommendation Cards for E-commerce
-   =================================================== */
 
-/* Product Card Container */
-.product-card {
+/* === AI Report Layout === */
+.ai-report {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 24px 28px;
+    border-top: 4px solid #0d6efd;
+    max-width: 960px;
+    margin: 0 auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.ai-report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ai-report-logo {
+    height: 48px;
+}
+
+.ai-report-body {
+    margin-top: 10px;
+}
+
+/* === Cards that come from AI === */
+.ai-report-body .ai-report-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+/* Base style for each AI card */
+.ai-card {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 14px 16px 16px;
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+    min-height: 140px;
+}
+
+.ai-card h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Icons via pseudo-elements */
+.ai-card-snapshot h3::before {
+    content: "📋";
+}
+.ai-card-strengths h3::before {
+    content: "💪";
+}
+.ai-card-areas h3::before {
+    content: "🧩";
+}
+.ai-card-style h3::before {
+    content: "🧠";
+}
+.ai-card-activities h3::before {
+    content: "🏠";
+}
+
+.ai-card ul {
+    padding-left: 1.1rem;
+    margin-bottom: 0;
+}
+
+.ai-card p {
+    margin-bottom: 0;
+}
+
+/* Subtle accent strips */
+.ai-card-snapshot {
+    border-left: 4px solid #0d6efd;
+}
+.ai-card-strengths {
+    border-left: 4px solid #16a34a;
+}
+.ai-card-areas {
+    border-left: 4px solid #ea580c;
+}
+.ai-card-style {
+    border-left: 4px solid #6366f1;
+}
+.ai-card-activities {
+    border-left: 4px solid #9333ea;
+}
+
+/* Utility: things we don't want to print */
+.no-print {
+    /* default: nothing, only affected in @media print */
+}
+
+
+
+/* =========================
+   PRINT STYLES – AI + PLAN
+   ========================= */
+@media print {
+
+  /* --------- Global page setup (portrait A4) --------- */
+  @page {
+    size: A4;
+    margin: 8mm 10mm;
+  }
+
+    /* ---------- AI INSIGHTS (PRINT) ---------- */
+
+  body.print-ai {
+    margin: 0;
+    font-size: 10px;      /* base – content inside #aiReport will override */
+    line-height: 1.2;
+  }
+
+  /* Hide everything by default */
+  body.print-ai * {
+    visibility: hidden;
+  }
+
+  /* Show only the AI report box */
+  body.print-ai #aiReport,
+  body.print-ai #aiReport * {
+    visibility: visible;
+  }
+
+  /* Main printable box */
+  body.print-ai #aiReport {
+    position: static;
+    top: auto;
+    left: auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    font-size: 9.5px;      /* actual print font size */
+    line-height: 1.25;
+    padding: 10px 14px;    /* compact padding for print */
+  }
+
+  /* Remove layout chrome */
+  body.print-ai .container-fluid,
+  body.print-ai .card,
+  body.print-ai .ai-report {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  body.print-ai .navbar,
+  body.print-ai .sidebar,
+  body.print-ai .footer,
+  body.print-ai .no-print {
+    display: none !important;
+  }
+
+  /* Cards stacked vertically, not grid */
+  body.print-ai .ai-report-cards {
+    display: block !important;
+  }
+
+  /* Academic & insight cards – compact */
+  body.print-ai .ai-academic-section {
+    margin-bottom: 6px;
+  }
+
+  body.print-ai .ai-academic-card {
+    padding: 6px 8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  body.print-ai .ai-card {
+    min-height: auto !important;
+    width: 100% !important;
+    padding: 6px 8px 8px !important;
+    margin-bottom: 6px !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Smaller gaps between paragraphs/lists */
+  body.print-ai .ai-card p,
+  body.print-ai .ai-card ul {
+    margin-bottom: 0.25rem;
+  }
+
+  body.print-ai hr {
+    margin: 6px 0;
+  }
+
+
+
+
+
+  /* ---------- LEARNING PLAN (Weekly table ONLY) ---------- */
+
+  body.print-plan {
+    margin: 0;
+    font-size: 10px;   /* base size; table uses 0.67rem separately */
+    line-height: 1.2;
+  }
+
+  body.print-plan .navbar,
+  body.print-plan .sidebar,
+  body.print-plan .footer,
+  body.print-plan .no-print {
+    display: none !important;
+  }
+
+  body.print-plan .container-fluid,
+  body.print-plan .card {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Hide the separate Long-Term Strategy card completely */
+  body.print-plan .learning-plan-longterm,
+  body.print-plan .learning-plan-longterm * {
+    display: none !important;
+  }
+
+  /* Main report area */
+  body.print-plan #learningPlanReport {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ✅ keep ONLY the weekly table, hide all other siblings */
+  body.print-plan #learningPlanReport > *:not(table) {
+    display: none !important;
+  }
+
+  /* Weekly Action Plan table styling */
+  body.print-plan #learningPlanReport table {
+    width: 100%;
+    font-size: 0.65rem;
+    border-spacing: 0;
+  }
+
+  body.print-plan #learningPlanReport th,
+  body.print-plan #learningPlanReport td {
+    padding: 0.22rem 0.4rem;
+  }
+
+  body.print-plan #learningPlanReport td:nth-child(2) ol,
+  body.print-plan #learningPlanReport td:nth-child(2) ul {
+    margin: 0;
+    padding-left: 1rem;
+  }
+
+  body.print-plan #learningPlanReport td:nth-child(2) li {
+    margin: 0 0 0.12rem 0;
+  }
+
+
+}
+
+
+
+
+
+
+
+.ai-academic-card {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 8px 10px 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.ai-stars .bi-star,
+.ai-stars .bi-star-fill {
+    font-size: 0.9rem;
+}
+
+.ai-stars .bi-star-fill {
+    color: #fbbf24; /* gold-ish */
+}
+
+.ai-stars .bi-star {
+    color: #cbd5e1; /* light gray */
+}
+
+
+/* ============================
+   Learning Plan – table styles
+   ============================ */
+
+.learning-plan-report {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
   background: #ffffff;
-  border: 1px solid #e0e0e0;
   border-radius: 12px;
-  padding: 1.25rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  border-color: #667eea;
-}
-
-/* Product Name */
-.product-card h6 {
-  color: #2c3e50;
-  font-size: 1.05rem;
-  line-height: 1.4;
-  margin-bottom: 0.75rem;
-}
-
-/* Priority Badges */
-.product-card .badge {
-  font-size: 0.7rem;
+/* Headings inside the report */
+.learning-plan-report h2 {
+  font-size: 1.6rem;
   font-weight: 600;
-  padding: 0.35rem 0.6rem;
-  border-radius: 6px;
-  letter-spacing: 0.3px;
+  margin-bottom: 0.25rem;
 }
 
-/* Product Type Badge */
-.product-card .bg-secondary {
-  background-color: #6c757d !important;
-  color: white !important;
-}
-
-/* Purchase Buttons Container */
-.purchase-buttons {
-  margin-top: auto;
-}
-
-.purchase-buttons .btn {
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-}
-
-.purchase-buttons .btn:hover {
-  transform: translateX(3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* Shopee Button */
-.purchase-buttons .btn-outline-primary {
-  border-color: #ee4d2d;
-  color: #ee4d2d;
-}
-
-.purchase-buttons .btn-outline-primary:hover {
-  background-color: #ee4d2d;
-  border-color: #ee4d2d;
-  color: white;
-}
-
-/* Lazada Button */
-.purchase-buttons .btn-outline-warning {
-  border-color: #0f146d;
-  color: #0f146d;
-}
-
-.purchase-buttons .btn-outline-warning:hover {
-  background-color: #0f146d;
-  border-color: #0f146d;
-  color: white;
-}
-
-/* Amazon Button */
-.purchase-buttons .btn-outline-secondary:hover {
-  background-color: #ff9900;
-  border-color: #ff9900;
-  color: white;
-}
-
-/* Popular Button */
-.purchase-buttons .btn-outline-info {
-  border-color: #00796b;
-  color: #00796b;
-}
-
-.purchase-buttons .btn-outline-info:hover {
-  background-color: #00796b;
-  border-color: #00796b;
-  color: white;
-}
-
-/* Product Section Header */
-#productsCard .card-title {
-  color: #2c3e50;
-  font-size: 1.3rem;
+.learning-plan-report h3 {
+  font-size: 1.25rem;
   font-weight: 600;
+  margin-top: 1.2rem;
   margin-bottom: 0.5rem;
 }
 
-#productsCard .card-title i {
-  font-size: 1.2rem;
-  margin-right: 0.5rem;
+/* Base table look */
+.learning-plan-report table,
+.learning-plan-report .table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 1.5rem;
+  table-layout: fixed; 
+  background: #ffffff;
+  border-radius: 10px;
+  overflow: hidden; /* keep rounded corners */
 }
 
-/* Price Display */
-.text-success {
+/* Header row */
+.learning-plan-report thead th {
+  background: #eef2ff;
+  color: #111827;
+  font-weight: 600;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+/* All cells */
+.learning-plan-report th,
+.learning-plan-report td,
+.learning-plan-report .table th,
+.learning-plan-report .table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.6rem 0.85rem;
+  vertical-align: top;
+}
+
+/* Narrow "Day" column */
+.learning-plan-report table th:first-child,
+.learning-plan-report table td:first-child {
+  width: 120px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #f9fafb;
+}
+
+/* Zebra stripes */
+.learning-plan-report tbody tr:nth-child(odd) {
+  background: #ffffff;
+}
+
+.learning-plan-report tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+/* Long text in activities column */
+.learning-plan-report td:nth-child(2) {
+  text-align: left;
+}
+
+/* Slightly dim bullet numbers to make text easier to read */
+.learning-plan-report td:nth-child(2) strong {
+  font-weight: 600;
+}
+/* Separate each activity inside the "Recommended Activities" column */
+
+/* Make sure lists inside the activities column are neat */
+.learning-plan-report td:nth-child(2) ol,
+.learning-plan-report td:nth-child(2) ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+/* Add a light divider between each list item (activity) */
+.learning-plan-report td:nth-child(2) ol li + li,
+.learning-plan-report td:nth-child(2) ul li + li {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 2px dashed #949696;
+}
+
+/* If the AI used <p> instead of <li>, also separate paragraphs */
+.learning-plan-report td:nth-child(2) p + p {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 2px dashed #949696;
+}
+
+/* ============================
+   Learning Plan – color polish
+   ============================ */
+
+/* Day column color */
+.learning-plan-report td:first-child {
+  color: #4f46e5;        /* indigo */
+  font-weight: 700;
+  background: #eef2ff !important;
+}
+
+/* Activity titles (the bold numbers + names) */
+.learning-plan-report td:nth-child(2) strong {
+  color: #0f766e;        /* teal */
+  font-weight: 700;
+}
+
+/* Duration text inside brackets (minutes) */
+.learning-plan-report td:nth-child(2) {
+  color: #1f2937;        /* dark gray for base text */
+}
+
+.learning-plan-report td:nth-child(2) em,
+.learning-plan-report td:nth-child(2) span.duration {
+  color: #9333ea;        /* purple for time emphasis */
+  font-style: normal;
   font-weight: 600;
 }
 
-/* Reason Text */
-.product-card .text-secondary {
-  color: #6c757d !important;
-  line-height: 1.5;
+/* Quotes / spoken phrases */
+.learning-plan-report td:nth-child(2) q,
+.learning-plan-report td:nth-child(2) i {
+  color: #2563eb;        /* soft blue */
+  font-style: italic;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .product-card {
-    margin-bottom: 1rem;
-  }
-
-  .purchase-buttons .btn {
-    font-size: 0.8rem;
-    padding: 0.4rem 0.6rem;
-  }
-
-  #productsCard .card-title {
-    font-size: 1.1rem;
-  }
+/* Make numbered items pop slightly */
+.learning-plan-report td:nth-child(2) b {
+  color: #15803d;        /* green */
 }
 
-/* Loading Animation for Products */
-.product-item {
-  animation: fadeInUp 0.5s ease;
+/* Softer dashed separator */
+.learning-plan-report td:nth-child(2) p + p,
+.learning-plan-report td:nth-child(2) li + li {
+  border-top: 1px dashed #c7d2fe;
+}
+/* ============================
+   Learning Plan – Long-term strategy
+   ============================ */
+
+/* Make the last <h3> (Long-Term Strategy) stand out as a section title */
+.learning-plan-report h3:last-of-type {
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4f46e5;          /* indigo */
+  border-left: 4px solid #4f46e5;
+  padding-left: 0.6rem;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Turn the following <ul> into a soft card */
+.learning-plan-report h3:last-of-type + ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.9rem 1.1rem 1.1rem;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
 }
 
-/* Stagger animation for multiple products */
-.product-item:nth-child(1) { animation-delay: 0.1s; }
-.product-item:nth-child(2) { animation-delay: 0.2s; }
-.product-item:nth-child(3) { animation-delay: 0.3s; }
-.product-item:nth-child(4) { animation-delay: 0.4s; }
-.product-item:nth-child(5) { animation-delay: 0.5s; }
-.product-item:nth-child(6) { animation-delay: 0.6s; }
-
-/* ===================================================
-   Product Filter Tabs
-   =================================================== */
-
-#productFilterTabs .nav-link {
-  color: #6c757d;
-  font-weight: 500;
-  font-size: 0.9rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  margin-right: 0.5rem;
-  transition: all 0.3s ease;
-  border: 1px solid transparent;
+/* Custom bullet dots */
+.learning-plan-report h3:last-of-type + ul li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.45rem;
 }
 
-#productFilterTabs .nav-link:hover {
-  background-color: #f8f9fa;
-  color: #667eea;
-  border-color: #e0e0e0;
+.learning-plan-report h3:last-of-type + ul li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #22c55e;     /* green dot */
 }
 
-#productFilterTabs .nav-link.active {
-  background-color: #667eea;
-  color: white;
-  border-color: #667eea;
-}
-
-/* Classification Badges on Product Cards */
-.product-card .badge.bg-light {
-  font-size: 0.65rem;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid #dee2e6;
-}
-
-.product-card .badge.bg-light i {
-  font-size: 0.6rem;
-  margin-right: 0.2rem;
-}
-
-/* Category Section Headers */
-.tab-pane h6 {
-  color: #495057;
-  font-weight: 600;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e9ecef;
-  margin-top: 1.5rem !important;
-}
-
-.tab-pane h6:first-child {
-  margin-top: 0 !important;
-}
-
-/* Price Range Indicators */
-.text-success {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-/* Mobile Responsive for Filter Tabs */
-@media (max-width: 768px) {
-  #productFilterTabs {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  #productFilterTabs .nav-link {
-    font-size: 0.8rem;
-    padding: 0.4rem 0.7rem;
-    white-space: nowrap;
-  }
+/* Emphasise the bold “titles” inside each bullet */
+.learning-plan-report h3:last-of-type + ul li strong {
+  color: #0f766e;          /* teal */
+  font-weight: 700;
 }
