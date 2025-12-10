@@ -378,10 +378,18 @@ document.addEventListener('DOMContentLoaded', function() {
     return 0;
   });
 
-  // Color palette matching Academic Progress Tracker
+  // Minimalist clean color palette - soft, lighter colors
   const barColors = [
-    '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-    '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+    'rgba(99, 179, 237, 0.7)',   // Soft blue
+    'rgba(255, 167, 38, 0.7)',   // Soft orange
+    'rgba(46, 204, 113, 0.7)',   // Soft green
+    'rgba(155, 89, 182, 0.7)',   // Soft purple
+    'rgba(52, 152, 219, 0.7)',   // Soft azure
+    'rgba(241, 196, 15, 0.7)',   // Soft yellow
+    'rgba(231, 76, 60, 0.7)',    // Soft red
+    'rgba(26, 188, 156, 0.7)',   // Soft teal
+    'rgba(230, 126, 34, 0.7)',   // Soft carrot
+    'rgba(149, 165, 166, 0.7)'   // Soft gray
   ];
 
   new Chart(academicCtx, {
@@ -392,8 +400,11 @@ document.addEventListener('DOMContentLoaded', function() {
         label: 'Average Score',
         data: averages,
         backgroundColor: barColors,
-        borderColor: barColors,
-        borderWidth: 1
+        borderColor: 'transparent',
+        borderWidth: 0,
+        borderRadius: 6,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8
       }]
     },
     options: {
@@ -404,17 +415,21 @@ document.addEventListener('DOMContentLoaded', function() {
           display: false
         },
         tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          titleColor: '#2c3e50',
+          bodyColor: '#34495e',
+          borderColor: '#ecf0f1',
+          borderWidth: 1,
+          padding: 10,
+          cornerRadius: 6,
           titleFont: {
-            size: 14,
-            weight: 'bold'
+            size: 13,
+            weight: '600'
           },
           bodyFont: {
-            size: 13
+            size: 12
           },
-          borderColor: '#e5e7eb',
-          borderWidth: 1
+          displayColors: false
         }
       },
       scales: {
@@ -423,37 +438,58 @@ document.addEventListener('DOMContentLoaded', function() {
           suggestedMax: 100,
           ticks: {
             font: {
-              size: 12
-            }
+              size: 11,
+              family: 'system-ui, -apple-system, sans-serif'
+            },
+            color: '#7f8c8d',
+            padding: 8
           },
           grid: {
-            color: '#f3f4f6'
+            color: 'rgba(0, 0, 0, 0.04)',
+            lineWidth: 1,
+            drawBorder: false
+          },
+          border: {
+            display: false
           },
           title: {
             display: true,
             text: 'Average Score',
             font: {
-              size: 13,
-              weight: 'bold'
-            }
+              size: 12,
+              weight: '500',
+              family: 'system-ui, -apple-system, sans-serif'
+            },
+            color: '#95a5a6',
+            padding: { bottom: 10 }
           }
         },
         x: {
           grid: {
+            display: false,
+            drawBorder: false
+          },
+          border: {
             display: false
           },
           ticks: {
             font: {
-              size: 12
-            }
+              size: 11,
+              family: 'system-ui, -apple-system, sans-serif'
+            },
+            color: '#7f8c8d',
+            padding: 8
           },
           title: {
             display: true,
             text: 'Subject',
             font: {
-              size: 13,
-              weight: 'bold'
-            }
+              size: 12,
+              weight: '500',
+              family: 'system-ui, -apple-system, sans-serif'
+            },
+            color: '#95a5a6',
+            padding: { top: 10 }
           }
         }
       }
