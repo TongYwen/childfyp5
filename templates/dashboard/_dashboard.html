@@ -1,171 +1,155 @@
-<div class="container-fluid mt-4 px-4">
-    <!-- Header Section -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="parent-dashboard-title">
-                <i class="bi bi-house-heart-fill"></i> Parent Dashboard
-            </h2>
-            <p class="text-muted">Welcome back, {{ current_user.name }}! Here's an overview of {{ selected_child.name }}'s learning journey.</p>
-        </div>
-    </div>
-
-    <!-- Child Profile Card -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="child-profile-card">
-                <div class="child-profile-header">
-                    <div class="child-avatar">
-                        <i class="bi bi-person-circle"></i>
-                    </div>
-                    <div class="child-info">
-                        <h3 class="child-name">{{ selected_child.name }}</h3>
-                        <div class="child-details">
-                            <span class="detail-badge">
-                                <i class="bi bi-calendar-event"></i> {{ selected_child.age }} years old
-                            </span>
-                            <span class="detail-badge">
-                                <i class="bi bi-mortarboard"></i> Grade {{ selected_child.grade_level }}
-                            </span>
-                            <span class="detail-badge">
-                                <i class="bi bi-gender-{{ 'male' if selected_child.gender|lower == 'male' else 'female' }}"></i> {{ selected_child.gender }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+<div class="parent-dashboard-modern">
+    <!-- Welcome Header with Child Spotlight -->
+    <div class="welcome-banner">
+        <div class="welcome-content">
+            <div class="welcome-greeting">
+                <h1>Hello, {{ current_user.name }}! 👋</h1>
+                <p class="welcome-subtitle">Let's see how {{ selected_child.name }} is growing today</p>
             </div>
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row g-4 mb-4">
-        <!-- Total Subjects Card -->
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card stat-card-primary">
-                <div class="stat-icon">
+    <!-- Child Spotlight Card -->
+    <div class="child-spotlight-card">
+        <div class="spotlight-left">
+            <div class="child-avatar-modern">
+                <div class="avatar-circle">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <div class="avatar-decoration"></div>
+            </div>
+        </div>
+        <div class="spotlight-right">
+            <h2 class="child-name-modern">{{ selected_child.name }}</h2>
+            <div class="child-meta">
+                <span class="meta-item meta-age">
+                    <i class="bi bi-cake2-fill"></i>
+                    {{ selected_child.age }} years
+                </span>
+                <span class="meta-item meta-grade">
                     <i class="bi bi-book-fill"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Total Subjects</div>
-                    <div class="stat-value">{{ subjects|length if subjects else 0 }}</div>
-                    <div class="stat-detail">Learning areas tracked</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Average Score Card -->
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card stat-card-success">
-                <div class="stat-icon">
-                    <i class="bi bi-graph-up-arrow"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Average Score</div>
-                    <div class="stat-value">
-                        {% if scores %}
-                            {{ "%.1f"|format((scores|sum(attribute='score')|float / scores|length) * 100) }}%
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </div>
-                    <div class="stat-detail">Overall performance</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Assessments Card -->
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card stat-card-warning">
-                <div class="stat-icon">
-                    <i class="bi bi-clipboard-data-fill"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Assessments</div>
-                    <div class="stat-value">{{ scores|length if scores else 0 }}</div>
-                    <div class="stat-detail">Recorded scores</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Learning Status Card -->
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card stat-card-info">
-                <div class="stat-icon">
-                    <i class="bi bi-star-fill"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Progress Status</div>
-                    <div class="stat-value">
-                        {% if scores %}
-                            {% set avg = (scores|sum(attribute='score')|float / scores|length) * 100 %}
-                            {% if avg >= 80 %}
-                                <span style="font-size: 1.5rem; color: #10b981;">
-                                    <i class="bi bi-emoji-smile"></i> Excellent
-                                </span>
-                            {% elif avg >= 60 %}
-                                <span style="font-size: 1.5rem; color: #f59e0b;">
-                                    <i class="bi bi-emoji-neutral"></i> Good
-                                </span>
-                            {% else %}
-                                <span style="font-size: 1.5rem; color: #ef4444;">
-                                    <i class="bi bi-emoji-frown"></i> Needs Help
-                                </span>
-                            {% endif %}
-                        {% else %}
-                            <span style="font-size: 1.2rem; color: #6b7280;">No data</span>
-                        {% endif %}
-                    </div>
-                    <div class="stat-detail">Current standing</div>
-                </div>
+                    Grade {{ selected_child.grade_level }}
+                </span>
+                <span class="meta-item meta-gender">
+                    <i class="bi bi-{{ 'gender-male' if selected_child.gender|lower == 'male' else 'gender-female' }}"></i>
+                    {{ selected_child.gender }}
+                </span>
             </div>
         </div>
     </div>
 
-    <!-- Main Content Row -->
-    <div class="row g-4 mb-4">
-        <!-- Academic Progress Chart -->
-        <div class="col-xl-8">
-            <div class="card parent-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-bar-chart-fill text-primary"></i> Academic Progress Summary
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if subjects %}
-                        <canvas id="academicChart" style="height: 300px;"></canvas>
+    <!-- Quick Stats Grid -->
+    <div class="quick-stats-grid">
+        <!-- Total Subjects -->
+        <div class="stat-bubble stat-bubble-coral">
+            <div class="bubble-icon">
+                <i class="bi bi-books"></i>
+            </div>
+            <div class="bubble-content">
+                <div class="bubble-value">{{ subjects|length if subjects else 0 }}</div>
+                <div class="bubble-label">Subjects</div>
+            </div>
+        </div>
+
+        <!-- Average Score -->
+        <div class="stat-bubble stat-bubble-teal">
+            <div class="bubble-icon">
+                <i class="bi bi-trophy-fill"></i>
+            </div>
+            <div class="bubble-content">
+                <div class="bubble-value">
+                    {% if scores %}
+                        {{ "%.0f"|format((scores|sum(attribute='score')|float / scores|length) * 100) }}%
                     {% else %}
-                        <div class="text-center py-5">
-                            <i class="bi bi-inbox" style="font-size: 3rem; color: #d1d5db;"></i>
-                            <p class="text-muted mt-3">No academic scores recorded yet. Start tracking progress in the Academic Progress section.</p>
-                            <a href="{{ url_for('academic') }}" class="btn btn-primary btn-sm mt-2">
-                                <i class="bi bi-plus-circle"></i> Add Academic Score
-                            </a>
-                        </div>
+                        -
                     {% endif %}
                 </div>
+                <div class="bubble-label">Avg Score</div>
             </div>
         </div>
 
-        <!-- Quick Stats Overview -->
-        <div class="col-xl-4">
-            <div class="card parent-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-lightning-charge-fill text-warning"></i> Quick Overview
-                    </h5>
+        <!-- Total Assessments -->
+        <div class="stat-bubble stat-bubble-amber">
+            <div class="bubble-icon">
+                <i class="bi bi-file-earmark-check-fill"></i>
+            </div>
+            <div class="bubble-content">
+                <div class="bubble-value">{{ scores|length if scores else 0 }}</div>
+                <div class="bubble-label">Tests</div>
+            </div>
+        </div>
+
+        <!-- Progress Status -->
+        <div class="stat-bubble stat-bubble-blue">
+            <div class="bubble-icon">
+                {% if scores %}
+                    {% set avg = (scores|sum(attribute='score')|float / scores|length) * 100 %}
+                    {% if avg >= 80 %}
+                        <i class="bi bi-emoji-smile-fill"></i>
+                    {% elif avg >= 60 %}
+                        <i class="bi bi-emoji-neutral-fill"></i>
+                    {% else %}
+                        <i class="bi bi-emoji-frown-fill"></i>
+                    {% endif %}
+                {% else %}
+                    <i class="bi bi-dash-circle-fill"></i>
+                {% endif %}
+            </div>
+            <div class="bubble-content">
+                <div class="bubble-value" style="font-size: 1.1rem;">
+                    {% if scores %}
+                        {% set avg = (scores|sum(attribute='score')|float / scores|length) * 100 %}
+                        {% if avg >= 80 %}
+                            Excellent
+                        {% elif avg >= 60 %}
+                            Good
+                        {% else %}
+                            Growing
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
                 </div>
-                <div class="card-body">
-                    <div class="overview-item">
-                        <div class="overview-label">
-                            <i class="bi bi-person-fill text-primary"></i> Child
-                        </div>
-                        <div class="overview-value" style="font-size: 1.2rem;">{{ selected_child.name }}</div>
+                <div class="bubble-label">Status</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress and Highlights Section -->
+    <div class="dashboard-main-grid">
+        <!-- Academic Progress Chart -->
+        <div class="chart-card-modern">
+            <div class="chart-header">
+                <h3><i class="bi bi-graph-up"></i> Academic Progress</h3>
+            </div>
+            <div class="chart-body">
+                {% if subjects %}
+                    <canvas id="academicChart" style="height: 300px;"></canvas>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-clipboard-data"></i>
+                        <p>No academic data yet</p>
+                        <a href="{{ url_for('academic_progress') }}" class="btn-modern btn-modern-coral">
+                            Add First Score
+                        </a>
                     </div>
-                    <div class="overview-item">
-                        <div class="overview-label">
-                            <i class="bi bi-trophy-fill text-warning"></i> Best Subject
-                        </div>
-                        <div class="overview-value" style="font-size: 1.2rem;">
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Highlights -->
+        <div class="highlights-card-modern">
+            <div class="highlight-header">
+                <h3><i class="bi bi-stars"></i> Highlights</h3>
+            </div>
+            <div class="highlight-body">
+                <div class="highlight-item">
+                    <div class="highlight-icon highlight-icon-star">
+                        <i class="bi bi-trophy-fill"></i>
+                    </div>
+                    <div class="highlight-text">
+                        <div class="highlight-label">Best Subject</div>
+                        <div class="highlight-value">
                             {% if scores and subjects %}
                                 {% set best_subject = namespace(name='N/A', score=0) %}
                                 {% for subject in subjects %}
@@ -180,32 +164,40 @@
                                 {% endfor %}
                                 {{ best_subject.name }}
                             {% else %}
-                                N/A
+                                Not yet
                             {% endif %}
                         </div>
                     </div>
-                    <div class="overview-item">
-                        <div class="overview-label">
-                            <i class="bi bi-award-fill text-success"></i> Achievements
-                        </div>
-                        <div class="overview-value" style="font-size: 1.2rem;">
+                </div>
+
+                <div class="highlight-item">
+                    <div class="highlight-icon highlight-icon-badge">
+                        <i class="bi bi-patch-check-fill"></i>
+                    </div>
+                    <div class="highlight-text">
+                        <div class="highlight-label">High Scores</div>
+                        <div class="highlight-value">
                             {% if scores %}
                                 {% set high_scores = scores|selectattr('score', 'ge', 0.8)|list|length %}
-                                {{ high_scores }} High Scores
+                                {{ high_scores }} achievement{{ 's' if high_scores != 1 else '' }}
                             {% else %}
-                                0
+                                0 achievements
                             {% endif %}
                         </div>
                     </div>
-                    <div class="overview-item mb-0">
-                        <div class="overview-label">
-                            <i class="bi bi-calendar-check-fill text-info"></i> Last Updated
-                        </div>
-                        <div class="overview-value" style="font-size: 1rem;">
+                </div>
+
+                <div class="highlight-item">
+                    <div class="highlight-icon highlight-icon-calendar">
+                        <i class="bi bi-calendar-event-fill"></i>
+                    </div>
+                    <div class="highlight-text">
+                        <div class="highlight-label">Last Activity</div>
+                        <div class="highlight-value">
                             {% if scores %}
-                                {{ scores[-1].date.strftime('%b %d, %Y') if scores[-1].date else 'N/A' }}
+                                {{ scores[-1].date.strftime('%b %d') if scores[-1].date else 'N/A' }}
                             {% else %}
-                                Never
+                                No data
                             {% endif %}
                         </div>
                     </div>
@@ -214,207 +206,150 @@
         </div>
     </div>
 
-    <!-- Learning Tools Section -->
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <h4 class="mb-3"><i class="bi bi-grid-3x3-gap-fill text-primary"></i> Learning Tools & Insights</h4>
-        </div>
+    <!-- Explore Section -->
+    <div class="section-header-modern">
+        <h3><i class="bi bi-compass-fill"></i> Explore Tools</h3>
+        <p>Discover features to support your child's growth</p>
+    </div>
 
+    <div class="explore-grid">
         <!-- Academic Progress -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('academic') }}" class="text-decoration-none">
-                <div class="card parent-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-primary-soft">
-                                <i class="bi bi-graph-up text-primary"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Academic Progress</h5>
-                        </div>
-                        <p class="card-text text-muted">Track and analyze subject performance</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">{{ subjects|length if subjects else 0 }} subjects</small>
-                            <i class="bi bi-arrow-right-circle text-primary"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <a href="{{ url_for('academic_progress') }}" class="explore-card explore-card-coral">
+            <div class="explore-icon">
+                <i class="bi bi-graph-up"></i>
+            </div>
+            <h4>Academic Progress</h4>
+            <p>Track subject performance</p>
+            <div class="explore-footer">
+                <span>{{ subjects|length if subjects else 0 }} subjects</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </a>
 
         <!-- Preschool Tracker -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('preschool') }}" class="text-decoration-none">
-                <div class="card parent-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-success-soft">
-                                <i class="bi bi-mortarboard text-success"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Preschool Tracker</h5>
-                        </div>
-                        <p class="card-text text-muted">Monitor developmental milestones</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Benchmark comparison</small>
-                            <i class="bi bi-arrow-right-circle text-success"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <a href="{{ url_for('preschool_tracker') }}" class="explore-card explore-card-teal">
+            <div class="explore-icon">
+                <i class="bi bi-balloon-heart-fill"></i>
+            </div>
+            <h4>Preschool Milestones</h4>
+            <p>Developmental tracking</p>
+            <div class="explore-footer">
+                <span>Growth insights</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </a>
 
-        <!-- Learning Style Analyzer -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('learning') }}" class="text-decoration-none">
-                <div class="card parent-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-warning-soft">
-                                <i class="bi bi-lightbulb text-warning"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Learning Style</h5>
-                        </div>
-                        <p class="card-text text-muted">Discover optimal learning approaches</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Personalized insights</small>
-                            <i class="bi bi-arrow-right-circle text-warning"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <!-- Learning Style -->
+        <a href="{{ url_for('learning_style') }}" class="explore-card explore-card-amber">
+            <div class="explore-icon">
+                <i class="bi bi-emoji-smile-fill"></i>
+            </div>
+            <h4>Learning Style</h4>
+            <p>Discover how they learn</p>
+            <div class="explore-footer">
+                <span>Personalized</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </a>
 
         <!-- AI Insights -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('insights') }}" class="text-decoration-none">
-                <div class="card parent-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-info-soft">
-                                <i class="bi bi-robot text-info"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">AI Insights</h5>
-                        </div>
-                        <p class="card-text text-muted">Get AI-powered recommendations</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Intelligent analysis</small>
-                            <i class="bi bi-arrow-right-circle text-info"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <a href="{{ url_for('ai_insights') }}" class="explore-card explore-card-blue">
+            <div class="explore-icon">
+                <i class="bi bi-lightbulb-fill"></i>
+            </div>
+            <h4>AI Insights</h4>
+            <p>Smart recommendations</p>
+            <div class="explore-footer">
+                <span>AI-powered</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </a>
 
         <!-- Learning Plan -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('plan') }}" class="text-decoration-none">
-                <div class="card parent-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-purple-soft">
-                                <i class="bi bi-calendar-week text-purple"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Learning Plan</h5>
-                        </div>
-                        <p class="card-text text-muted">Manage daily learning activities</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Daily schedule</small>
-                            <i class="bi bi-arrow-right-circle text-purple"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <a href="{{ url_for('learning_plan') }}" class="explore-card explore-card-purple">
+            <div class="explore-icon">
+                <i class="bi bi-calendar-check-fill"></i>
+            </div>
+            <h4>Learning Plan</h4>
+            <p>Daily activities schedule</p>
+            <div class="explore-footer">
+                <span>Get organized</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </a>
 
         <!-- Resources Hub -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('resources') }}" class="text-decoration-none">
-                <div class="card parent-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-teal-soft">
-                                <i class="bi bi-collection text-teal"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Resources Hub</h5>
-                        </div>
-                        <p class="card-text text-muted">Access educational materials</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Videos, books & more</small>
-                            <i class="bi bi-arrow-right-circle text-teal"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
+        <a href="{{ url_for('resources_hub') }}" class="explore-card explore-card-green">
+            <div class="explore-icon">
+                <i class="bi bi-collection-fill"></i>
+            </div>
+            <h4>Resources</h4>
+            <p>Educational materials</p>
+            <div class="explore-footer">
+                <span>Library</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </a>
     </div>
 
-    <!-- AI Insights Section -->
-    <div class="row g-4 mb-4">
+    <!-- Smart Insights Section -->
+    <div class="section-header-modern">
+        <h3><i class="bi bi-magic"></i> Smart Insights</h3>
+        <p>AI-powered recommendations for your child</p>
+    </div>
+
+    <div class="insights-modern-grid">
         <!-- Preschool Performance -->
-        <div class="col-lg-4">
-            <div class="card parent-card insights-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-mortarboard-fill text-success"></i> Preschool Performance
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="insights-content">
-                        {% for p in preschool %}
-                            {{ p|safe }}
-                        {% else %}
-                            <div class="text-center py-3">
-                                <i class="bi bi-info-circle text-muted" style="font-size: 2rem;"></i>
-                                <p class="text-muted mt-2 mb-0">No benchmark comparisons yet. Visit the Preschool Tracker to get started.</p>
-                            </div>
-                        {% endfor %}
+        <div class="insight-card-modern insight-card-teal">
+            <div class="insight-header">
+                <i class="bi bi-balloon-heart-fill"></i>
+                <h4>Preschool Progress</h4>
+            </div>
+            <div class="insight-content">
+                {% for p in preschool %}
+                    {{ p|safe }}
+                {% else %}
+                    <div class="insight-empty">
+                        <i class="bi bi-info-circle"></i>
+                        <p>Add preschool data to see insights</p>
                     </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
 
-        <!-- Learning Style Analysis -->
-        <div class="col-lg-4">
-            <div class="card parent-card insights-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-lightbulb-fill text-warning"></i> Learning Style
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="insights-content">
-                        {% for l in learning %}
-                            {{ l|safe }}
-                        {% else %}
-                            <div class="text-center py-3">
-                                <i class="bi bi-info-circle text-muted" style="font-size: 2rem;"></i>
-                                <p class="text-muted mt-2 mb-0">No learning style observations yet. Add observations to get insights.</p>
-                            </div>
-                        {% endfor %}
+        <!-- Learning Style -->
+        <div class="insight-card-modern insight-card-amber">
+            <div class="insight-header">
+                <i class="bi bi-emoji-smile-fill"></i>
+                <h4>Learning Style</h4>
+            </div>
+            <div class="insight-content">
+                {% for l in learning %}
+                    {{ l|safe }}
+                {% else %}
+                    <div class="insight-empty">
+                        <i class="bi bi-info-circle"></i>
+                        <p>Add observations to discover learning style</p>
                     </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
 
         <!-- Recommendations -->
-        <div class="col-lg-4">
-            <div class="card parent-card insights-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-star-fill text-info"></i> Recommendations
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="insights-content">
-                        {% for t in tutoring %}
-                            {{ t|safe }}
-                        {% else %}
-                            <div class="text-center py-3">
-                                <i class="bi bi-info-circle text-muted" style="font-size: 2rem;"></i>
-                                <p class="text-muted mt-2 mb-0">No recommendations available yet. Complete assessments to receive personalized suggestions.</p>
-                            </div>
-                        {% endfor %}
+        <div class="insight-card-modern insight-card-blue">
+            <div class="insight-header">
+                <i class="bi bi-star-fill"></i>
+                <h4>Recommendations</h4>
+            </div>
+            <div class="insight-content">
+                {% for t in tutoring %}
+                    {{ t|safe }}
+                {% else %}
+                    <div class="insight-empty">
+                        <i class="bi bi-info-circle"></i>
+                        <p>Complete assessments for personalized tips</p>
                     </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
