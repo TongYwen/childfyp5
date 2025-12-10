@@ -4278,7 +4278,78 @@ def debug_create_notification():
 @login_required
 @roles_required("admin")
 def admin_dashboard():
-    return render_template("admin/dashboard.html", active="admin")
+    conn = get_db_conn()
+    cursor = conn.cursor(dictionary=True)
+
+    # Get total counts
+    cursor.execute("SELECT COUNT(*) as count FROM users")
+    total_users = cursor.fetchone()['count']
+
+    cursor.execute("SELECT COUNT(*) as count FROM users WHERE role='parent'")
+    total_parents = cursor.fetchone()['count']
+
+    cursor.execute("SELECT COUNT(*) as count FROM users WHERE role='admin'")
+    total_admins = cursor.fetchone()['count']
+
+    cursor.execute("SELECT COUNT(*) as count FROM children")
+    total_children = cursor.fetchone()['count']
+
+    cursor.execute("SELECT COUNT(*) as count FROM resources")
+    total_resources = cursor.fetchone()['count']
+
+    cursor.execute("SELECT COUNT(*) as count FROM games")
+    total_games = cursor.fetchone()['count']
+
+    cursor.execute("SELECT COUNT(*) as count FROM tests")
+    total_tests = cursor.fetchone()['count']
+
+    cursor.execute("SELECT COUNT(*) as count FROM notifications WHERE is_read=0")
+    unread_notifications = cursor.fetchone()['count']
+
+    # Get recent users (last 5)
+    cursor.execute("""
+        SELECT id, name, email, role, created_at
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT 5
+    """)
+    recent_users = cursor.fetchall()
+
+    # Get recent children (last 5)
+    cursor.execute("""
+        SELECT c.id, c.name, c.age, u.name as parent_name, c.created_at
+        FROM children c
+        JOIN users u ON c.parent_id = u.id
+        ORDER BY c.created_at DESC
+        LIMIT 5
+    """)
+    recent_children = cursor.fetchall()
+
+    # Get user role distribution for chart
+    cursor.execute("""
+        SELECT role, COUNT(*) as count
+        FROM users
+        GROUP BY role
+    """)
+    role_distribution = cursor.fetchall()
+
+    conn.close()
+
+    stats = {
+        'total_users': total_users,
+        'total_parents': total_parents,
+        'total_admins': total_admins,
+        'total_children': total_children,
+        'total_resources': total_resources,
+        'total_games': total_games,
+        'total_tests': total_tests,
+        'unread_notifications': unread_notifications,
+        'recent_users': recent_users,
+        'recent_children': recent_children,
+        'role_distribution': role_distribution
+    }
+
+    return render_template("admin/dashboard.html", active="admin", stats=stats)
 
 
 @app.route("/admin/users")
