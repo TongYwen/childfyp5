@@ -2123,12 +2123,24 @@ def academic_progress():
     conn = get_db_conn()
     cursor = conn.cursor(dictionary=True)
 
+    # Fetch child record to ensure it exists
+    cursor.execute("SELECT * FROM children WHERE id=%s", (child_id,))
+    selected_child = cursor.fetchone()
+    if not selected_child:
+        flash("Child not found.", "danger")
+        cursor.close()
+        conn.close()
+        return redirect(url_for("select_child"))
+
     if request.method == "POST":
         subject = request.form.get("subject")
         other_subject = request.form.get("other_subject")
         score = request.form.get("score", type=int)
         year = request.form.get("year", type=int)
         month = request.form.get("month", type=int)
+
+        # Debug logging
+        print(f"DEBUG academic_progress POST - child_id: {child_id}, subject: {subject}, other_subject: {other_subject}, score: {score}, year: {year}, month: {month}")
 
         # If "Other" is selected, use the custom subject instead
         if subject == "Other":
@@ -2158,15 +2170,20 @@ def academic_progress():
 
             # All validations passed, insert record
             record_date = date(year, month, 1)
-            cursor.execute(
-                """
-                INSERT INTO academic_scores (child_id, subject, score, date)
-                VALUES (%s, %s, %s, %s)
-                """,
-                (child_id, subject, score, record_date),
-            )
-            conn.commit()
-            flash("Academic record added successfully!", "success")
+            try:
+                cursor.execute(
+                    """
+                    INSERT INTO academic_scores (child_id, subject, score, date)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (child_id, subject, score, record_date),
+                )
+                conn.commit()
+                flash("Academic record added successfully!", "success")
+            except Exception as e:
+                conn.rollback()
+                flash(f"Error saving record: {str(e)}", "danger")
+                print(f"Database error in academic_progress: {e}")  # For server logs
         else:
             flash("Please fill all required fields.", "danger")
 
@@ -2249,7 +2266,7 @@ def academic_progress():
     return render_template(
         "dashboard.html",
         content_template="dashboard/_academic.html",
-        selected_child={"id": child_id},
+        selected_child=selected_child,
         scores=display_scores,
         subjects=subjects,
         years=years,
