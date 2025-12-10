@@ -364,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const subjects = {{ subjects|tojson }};
   const allScores = {{ scores|tojson }};
 
-  // Calculate average for each subject
+  // Calculate average for each subject (in 0-100 scale)
   const averages = subjects.map(subject => {
     const subjectScores = allScores
       .filter(r => r.subject === subject)
@@ -373,10 +373,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (subjectScores.length > 0) {
       return Math.round(
         (subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length) * 100
-      ) / 100;
+      );
     }
     return 0;
   });
+
+  // Color palette matching Academic Progress Tracker
+  const barColors = [
+    '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+    '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+  ];
 
   new Chart(academicCtx, {
     type: 'bar',
@@ -385,26 +391,9 @@ document.addEventListener('DOMContentLoaded', function() {
       datasets: [{
         label: 'Average Score',
         data: averages,
-        backgroundColor: [
-          'rgba(102, 126, 234, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(147, 51, 234, 0.8)',
-          'rgba(236, 72, 153, 0.8)',
-          'rgba(20, 184, 166, 0.8)'
-        ],
-        borderColor: [
-          'rgba(102, 126, 234, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(147, 51, 234, 1)',
-          'rgba(236, 72, 153, 1)',
-          'rgba(20, 184, 166, 1)'
-        ],
-        borderWidth: 2,
-        borderRadius: 8
+        backgroundColor: barColors,
+        borderColor: barColors,
+        borderWidth: 1
       }]
     },
     options: {
@@ -425,22 +414,14 @@ document.addEventListener('DOMContentLoaded', function() {
             size: 13
           },
           borderColor: '#e5e7eb',
-          borderWidth: 1,
-          callbacks: {
-            label: function(context) {
-              return 'Average: ' + (context.parsed.y * 100).toFixed(1) + '%';
-            }
-          }
+          borderWidth: 1
         }
       },
       scales: {
         y: {
           beginAtZero: true,
-          max: 1,
+          suggestedMax: 100,
           ticks: {
-            callback: function(value) {
-              return (value * 100) + '%';
-            },
             font: {
               size: 12
             }
