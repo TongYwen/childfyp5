@@ -2125,9 +2125,20 @@ def academic_progress():
 
     if request.method == "POST":
         subject = request.form.get("subject")
+        other_subject = request.form.get("other_subject")
         score = request.form.get("score", type=int)
         year = request.form.get("year", type=int)
         month = request.form.get("month", type=int)
+
+        # If "Other" is selected, use the custom subject instead
+        if subject == "Other":
+            if other_subject and other_subject.strip():
+                subject = other_subject.strip()
+            else:
+                flash("Please enter a custom subject name.", "danger")
+                cursor.close()
+                conn.close()
+                return redirect(url_for("academic_progress"))
 
         if subject and score is not None and year and month:
             # Validate score range
