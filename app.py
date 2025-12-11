@@ -1028,7 +1028,7 @@ def login():
         conn = get_db_conn()
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
-            "SELECT id, name, email, password, role, is_active, deleted_at FROM users WHERE email = %s",
+            "SELECT id, name, email, password, role, is_active, deleted_at, last_login FROM users WHERE email = %s",
             (email,),
         )
         user = cursor.fetchone()
@@ -1047,6 +1047,9 @@ def login():
                 cursor.close()
                 conn.close()
                 return redirect(url_for("login"))
+
+            # Check if this is first-time login (last_login is NULL)
+            is_first_login = user.get("last_login") is None
 
             # Update last_login timestamp and reactivate account
             cursor.execute(
@@ -1081,7 +1084,11 @@ def login():
             if normalize_role(user_obj.role) == "admin":
                 return redirect(url_for("admin_dashboard"))
             else:
-                return redirect(url_for("profile"))
+                # For parents: redirect to dashboard if not first-time login, otherwise to profile
+                if is_first_login:
+                    return redirect(url_for("profile"))
+                else:
+                    return redirect(url_for("dashboard"))
 
         # Close connection if authentication fails
         if cursor:
