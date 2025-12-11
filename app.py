@@ -1028,7 +1028,7 @@ def login():
         conn = get_db_conn()
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
-            "SELECT id, name, email, password, role, is_active, deleted_at FROM users WHERE email = %s",
+            "SELECT id, name, email, password, role, is_active, deleted_at, last_login FROM users WHERE email = %s",
             (email,),
         )
         user = cursor.fetchone()
@@ -1047,6 +1047,9 @@ def login():
                 cursor.close()
                 conn.close()
                 return redirect(url_for("login"))
+            
+             # Check if this is first-time login (last_login is NULL)
+            is_first_login = user.get("last_login") is None
 
             # Update last_login timestamp and reactivate account
             cursor.execute(
@@ -1081,8 +1084,16 @@ def login():
             if normalize_role(user_obj.role) == "admin":
                 return redirect(url_for("admin_dashboard"))
             else:
-                return redirect(url_for("profile"))
+                 # For parents: redirect to dashboard if not first-time login, otherwise to profile
 
+                if is_first_login:
+
+                    return redirect(url_for("profile"))
+
+                else:
+
+                    return redirect(url_for("dashboard"))
+                
         # Close connection if authentication fails
         if cursor:
             cursor.close()
@@ -1321,13 +1332,20 @@ def send_deletion_confirmation_email(to_email, user_name):
     msg.body = f"""
 Hello {user_name},
 
-Your ChildGrowth Insights account has been permanently deleted due to 30 days of inactivity.
+Your ChildGrowth Insights account has been deactivated due to 30 days of inactivity.
 
-All your data, including children's profiles, assessments, and progress records, has been removed from our system.
+IMPORTANT: Your account can still be restored within the next 90 days!
 
-If you believe this was done in error or would like to create a new account, please contact our support team.
+Your data, including children's profiles, assessments, and progress records, has been preserved and can be recovered if you contact our support team to restore your account.
 
-Thank you for using ChildGrowth Insights.
+To restore your account:
+• Contact our support team or administrator
+• Request account restoration
+• Your account and all data will be fully restored
+
+Note: After 90 days, the account and data will be permanently deleted and cannot be recovered.
+
+If you have any questions or would like to restore your account, please contact our support team.
 
 Best regards,
 ChildGrowth Insights Team
@@ -1348,12 +1366,26 @@ ChildGrowth Insights Team
             <tr>
               <td style="padding: 30px; color: #333333; font-size: 16px;">
                 <p>Hello <strong>{user_name}</strong>,</p>
-                <p>Your <strong>ChildGrowth Insights</strong> account has been permanently deleted due to 30 days of inactivity.</p>
-                <p style="background: #e2e3e5; border-left: 4px solid #6c757d; padding: 15px; margin: 20px 0;">
-                  All your data, including children's profiles, assessments, and progress records, has been removed from our system.
+                <p>Your <strong>ChildGrowth Insights</strong> account has been deactivated due to 30 days of inactivity.</p>
+
+                <p style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+                  ⚠️ <strong>IMPORTANT:</strong> Your account can still be <strong>restored within the next 90 days!</strong>
                 </p>
-                <p>If you believe this was done in error or would like to create a new account, please contact our support team.</p>
-                <p>Thank you for using ChildGrowth Insights.</p>
+
+                <p>Your data, including children's profiles, assessments, and progress records, has been <strong>preserved</strong> and can be recovered if you contact our support team to restore your account.</p>
+
+                <p style="background: #d1ecf1; border-left: 4px solid #0dcaf0; padding: 15px; margin: 20px 0;">
+                  <strong>To restore your account:</strong><br>
+                  • Contact our support team or administrator<br>
+                  • Request account restoration<br>
+                  • Your account and all data will be fully restored
+                </p>
+
+                <p style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0;">
+                  🚫 <strong>Note:</strong> After 90 days, the account and data will be <strong>permanently deleted</strong> and cannot be recovered.
+                </p>
+
+                <p>If you have any questions or would like to restore your account, please contact our support team.</p>
                 <p>Best regards,<br><strong>ChildGrowth Insights Team</strong></p>
               </td>
             </tr>
@@ -1371,7 +1403,6 @@ ChildGrowth Insights Team
 """
     mail.send(msg)
 
-
 def send_restore_confirmation_email(to_email, user_name):
     """Send confirmation email after account has been restored by admin"""
     login_url = build_external_url("login")
@@ -1382,18 +1413,12 @@ def send_restore_confirmation_email(to_email, user_name):
 
     msg.body = f"""
 Hello {user_name},
-
 Great news! Your ChildGrowth Insights account has been successfully restored by an administrator.
-
 Your account is now active and you can log in to access all your children's data, assessments, and progress records.
-
 Log in now:
 {login_url}
-
 If you have any questions, please contact our support team.
-
 Welcome back!
-
 Best regards,
 ChildGrowth Insights Team
 """
@@ -1769,6 +1794,8 @@ def select_child():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    import re  # used for small text extractions
+
     if "selected_child" not in session:
         return redirect(url_for("select_child"))
 
@@ -1777,29 +1804,34 @@ def dashboard():
     conn = get_db_conn()
     cursor = conn.cursor(dictionary=True)
 
+    # --- Child info ---
     cursor.execute(
         "SELECT * FROM children WHERE id=%s AND parent_id=%s",
         (child_id, current_user.id),
     )
     selected_child = cursor.fetchone()
+
     if not selected_child:
         flash("Child not found.", "danger")
         cursor.close()
         conn.close()
         return redirect(url_for("select_child"))
 
+    # --- Academic scores for chart ---
     cursor.execute(
         "SELECT * FROM academic_scores WHERE child_id=%s ORDER BY date ASC",
         (child_id,),
     )
     scores = cursor.fetchall()
     subjects = sorted({row["subject"] for row in scores})
+
     for row in scores:
         if isinstance(row["date"], (datetime, date)):
             row["date_str"] = row["date"].strftime("%Y-%m")
         else:
             row["date_str"] = str(row["date"])[:7]
 
+    # --- AI results (preschool, learning style, tutoring) ---
     cursor.execute(
         """
         SELECT module, result, updated_at
@@ -1822,15 +1854,79 @@ def dashboard():
         "result", "<p class='text-muted'>No tutoring recommendations yet.</p>"
     )
 
+    # --- Build a SHORT one-sentence summary for Learning Style card ---
+    learning_brief = None
+    if learning_ai and "Main Learning Style" in learning_ai:
+        m = re.search(
+            r"<h5>\s*Main Learning Style\s*</h5>\s*<p>(.*?)</p>",
+            learning_ai,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if m:
+            # collapse extra whitespace
+            learning_brief = re.sub(r"\s+", " ", m.group(1)).strip()
+
+    # -------------------------------------------------------
+    #  Today's activities from latest learning_plan result
+    # -------------------------------------------------------
+    cursor.execute(
+        """
+        SELECT result
+        FROM ai_results
+        WHERE child_id = %s
+          AND module = 'learning_plan'
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+        """,
+        (child_id,),
+    )
+    plan_row = cursor.fetchone()
+
+    today_activities = []
+    if plan_row:
+        plan_html = plan_row["result"]
+
+        # strip HTML tags
+        plain_text = re.sub(r"<[^>]+>", "", plan_html)
+
+        # split into lines and capture the section for today
+        today_name = date.today().strftime("%A")  # Monday, Tuesday, ...
+        lines = [l.strip() for l in plain_text.splitlines() if l.strip()]
+
+        capture = False
+        day_names = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ]
+
+        for line in lines:
+            if re.search(rf"\b{today_name}\b", line, re.IGNORECASE):
+                capture = True
+                continue
+
+            if capture and any(
+                re.search(rf"\b{d}\b", line, re.IGNORECASE) for d in day_names
+            ):
+                break
+
+            if capture:
+                today_activities.append(line)
+
     cursor.close()
     conn.close()
 
+    # Create daily reminder only if parent
     if getattr(current_user, "role", None) == "parent":
         create_today_learning_plan_reminder(
             parent_id=current_user.id,
             child_id=selected_child["id"],
             child_name=selected_child["name"],
-        )    
+        )
 
     return render_template(
         "dashboard.html",
@@ -1841,8 +1937,13 @@ def dashboard():
         preschool=[preschool_ai],
         learning=[learning_ai],
         tutoring=[tutoring_ai],
+        learning_brief=learning_brief,      # <-- NEW
+        today_activities=today_activities,  # existing
         active="dashboard",
     )
+
+
+
 
 
 # -------------------------------------------------
@@ -3307,12 +3408,11 @@ def tutoring_recommendations():
             IMPORTANT: Use the above data to inform your recommendations, but DO NOT include or repeat
             the Preschool Development Summary or Learning Style Analysis in your output.
 
-            Based on your analysis of the child's profile and background data, provide ONLY these 4 sections:
+            Based on your analysis of the child's profile and background data, provide ONLY these 2 sections:
 
-            1. **Potential Weak Areas**: Identify specific skills that need support
+            1. **Potential Weak Areas**: Identify specific skills that need support 
             2. **Recommended Focus Areas**: Subjects or domains where tutoring would be most beneficial
-            3. **RECOMMENDED LEARNING MATERIALS** (IMPORTANT):
-               Recommend 3-5 SPECIFIC products (books, learning tools, stationery, toys, workbooks, flashcards, or games) that parents can purchase to support this child's learning.
+            Additionally, recommend 3-5 SPECIFIC products (books, learning tools, stationery, toys, workbooks, flashcards, or games) that parents can purchase to support this child's learning.
 
                Format each product like this (use this EXACT format):
                [PRODUCT_START]
@@ -3332,20 +3432,21 @@ def tutoring_recommendations():
 
             <h3>1. Potential Weak Areas</h3>
             <ul>
-              <li>Specific skill or area that needs support</li>
+              <li>Short specific skill</li>
               <li>Another weak area with brief explanation</li>
             </ul>
 
             <h3>2. Recommended Focus Areas</h3>
             <ul>
-              <li>Subject or domain for tutoring</li>
+              <li>Brief subject area (max 10-20 words)</li>
               <li>Another recommended focus area</li>
             </ul>
 
             IMPORTANT:
             - DO NOT include Preschool Development Summary
             - DO NOT include Learning Style Analysis
-            - Only output the 3 sections listed above
+            - Only output the 2 sections listed above plus product recommendations
+            - Keep bullet points SHORT and CONCISE (max 10-20 words each)
             - Be specific and actionable
             - Avoid generic disclaimers
             """
