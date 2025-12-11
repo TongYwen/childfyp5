@@ -1,127 +1,74 @@
-<div class="parent-dashboard-modern">
-    <!-- Welcome Header with Child Spotlight -->
-    <div class="welcome-banner">
-        <div class="welcome-content">
-            <div class="welcome-greeting">
-                <h1>Hello, {{ current_user.name }}! 👋</h1>
-                <p class="welcome-subtitle">Let's see how {{ selected_child.name }} is growing today</p>
-            </div>
-        </div>
+<h3>Dashboard</h3>
+
+<!-- Top Card: Child Info -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title">{{ selected_child.name }}</h5>
+    <p><strong>Age:</strong> {{ selected_child.age }}</p>
+    <p><strong>Grade Level:</strong> {{ selected_child.grade_level }}</p>
+    <p><strong>Gender:</strong> {{ selected_child.gender }}</p>
+  </div>
+</div>
+
+<!-- 4-Card Grid -->
+<div class="row g-4">
+  <!-- Academic Progress (Multi-line chart) -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Academic Progress</h5>
+        <canvas id="academicChart"></canvas>
+      </div>
     </div>
+  </div>
 
-    <!-- Child Spotlight Card -->
-    <div class="child-spotlight-card">
-        <div class="spotlight-left">
-            <div class="child-avatar-modern">
-                <div class="avatar-circle">
-                    <i class="bi bi-person-circle"></i>
-                </div>
-                <div class="avatar-decoration"></div>
-            </div>
-        </div>
-        <div class="spotlight-right">
-            <h2 class="child-name-modern">{{ selected_child.name }}</h2>
-            <div class="child-meta">
-                <span class="meta-item meta-age">
-                    <i class="bi bi-cake2-fill"></i>
-                    {{ selected_child.age }} years
-                </span>
-                <span class="meta-item meta-grade">
-                    <i class="bi bi-book-fill"></i>
-                    Grade {{ selected_child.grade_level }}
-                </span>
-                <span class="meta-item meta-gender">
-                    <i class="bi bi-{{ 'gender-male' if selected_child.gender|lower == 'male' else 'gender-female' }}"></i>
-                    {{ selected_child.gender }}
-                </span>
-            </div>
-        </div>
+  <!-- Preschool Performance Tracker (Text) -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Preschool Performance Tracker</h5>
+        <ul>
+          {% for p in preschool %}
+            {{ p|safe }}
+          {% else %}
+            <li class="text-muted">No benchmark comparisons yet</li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
+  </div>
 
-  
-      <!-- Academic Progress Chart - Full Width -->
-
-    <div class="chart-card-modern-full">
-        <div class="chart-header">
-            <h3><i class="bi bi-graph-up"></i> Academic Progress Summary</h3>
-        </div>
-        <div class="chart-body">
-            {% if subjects %}
-                <canvas id="academicChart" style="height: 400px;"></canvas>
-            {% else %}
-                <div class="empty-state">
-                    <i class="bi bi-clipboard-data"></i>
-                    <p>No academic data yet</p>
-                    <a href="{{ url_for('academic_progress') }}" class="btn-modern btn-modern-coral">
-                        Add First Score
-                    </a>
-                </div>
-            {% endif %}
-        </div>
+  <!-- Learning Style Analyzer -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Learning Style Analyzer</h5>
+        <ul>
+          {% for l in learning %}
+            {{ l|safe }}
+          {% else %}
+            <li class="text-muted">No observations yet</li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
-  
+  </div>
 
-    <!-- Smart Insights Section -->
-    <div class="section-header-modern">
-        <h3><i class="bi bi-magic"></i> Smart Insights</h3>
-        <p>AI-powered recommendations for your child</p>
+  <!-- Tutoring Recommendations -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title"> Recommendations</h5>
+        <ul>
+          {% for t in tutoring %}
+            {{ t|safe }}
+          {% else %}
+            <li class="text-muted">No recommendations yet</li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
-
-    <div class="insights-modern-grid">
-        <!-- Preschool Performance -->
-        <div class="insight-card-modern insight-card-teal">
-            <div class="insight-header">
-                <i class="bi bi-balloon-heart-fill"></i>
-                <h4>Preschool Progress</h4>
-            </div>
-            <div class="insight-content">
-                {% for p in preschool %}
-                    {{ p|safe }}
-                {% else %}
-                    <div class="insight-empty">
-                        <i class="bi bi-info-circle"></i>
-                        <p>Add preschool data to see insights</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Learning Style -->
-        <div class="insight-card-modern insight-card-amber">
-            <div class="insight-header">
-                <i class="bi bi-emoji-smile-fill"></i>
-                <h4>Learning Style</h4>
-            </div>
-            <div class="insight-content">
-                {% for l in learning %}
-                    {{ l|safe }}
-                {% else %}
-                    <div class="insight-empty">
-                        <i class="bi bi-info-circle"></i>
-                        <p>Add observations to discover learning style</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Recommendations -->
-        <div class="insight-card-modern insight-card-blue">
-            <div class="insight-header">
-                <i class="bi bi-star-fill"></i>
-                <h4>Recommendations</h4>
-            </div>
-            <div class="insight-content">
-                {% for t in tutoring %}
-                    {{ t|safe }}
-                {% else %}
-                    <div class="insight-empty">
-                        <i class="bi bi-info-circle"></i>
-                        <p>Complete assessments for personalized tips</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -129,71 +76,36 @@
 document.addEventListener('DOMContentLoaded', function() {
   const academicCtx = document.getElementById('academicChart');
   if (academicCtx) {
+    // Prepare unique sorted labels
+    const labels = [...new Set([
+      {% for row in scores %}
+        '{{ row.date_str }}',
+      {% endfor %}
+    ])];
+
     const subjects = {{ subjects|tojson }};
     const allScores = {{ scores|tojson }};
 
-    // Calculate average for each subject
-    const averages = subjects.map(subject => {
-      const subjectScores = allScores.filter(r => r.subject === subject).map(r => r.score);
-      if (subjectScores.length > 0) {
-        return Math.round((subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length) * 100) / 100;
-      }
-      return 0;
+    const datasets = subjects.map((subject, idx) => {
+      return {
+        label: subject,
+        data: labels.map(label => {
+          const entry = allScores.find(r => r.subject === subject && r.date_str === label);
+          return entry ? entry.score : null;
+        }),
+        borderColor: `hsl(${idx * 60}, 70%, 50%)`,
+        tension: 0.3,
+        fill: false
+      };
     });
 
     new Chart(academicCtx, {
-      type: 'bar',
-      data: {
-        labels: subjects,
-        datasets: [{
-          label: 'Average Score',
-          data: averages,
-          backgroundColor: [
-            'rgba(255, 99, 132, 0.7)',
-            'rgba(54, 162, 235, 0.7)',
-            'rgba(255, 206, 86, 0.7)',
-            'rgba(75, 192, 192, 0.7)',
-            'rgba(153, 102, 255, 0.7)',
-            'rgba(255, 159, 64, 0.7)',
-            'rgba(99, 255, 132, 0.7)'
-          ],
-
-          borderColor: [
-            'rgba(255, 99, 132, 1)',
-            'rgba(54, 162, 235, 1)',
-            'rgba(255, 206, 86, 1)',
-            'rgba(75, 192, 192, 1)',
-            'rgba(153, 102, 255, 1)',
-            'rgba(255, 159, 64, 1)',
-            'rgba(99, 255, 132, 1)'
-          ],
-          borderWidth: 2
-        }]
-      },
+      type: 'line',
+      data: { labels, datasets },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            max: 100,
-            title: {
-              display: true,
-              text: 'Average Score'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Subject'
-             }
-          }
-        }
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { beginAtZero: true, max: 100 } }
       }
     });
   }
