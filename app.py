@@ -3240,9 +3240,7 @@ def tutoring_recommendations():
 
             1. **Potential Weak Areas**: Identify specific skills that need support
             2. **Recommended Focus Areas**: Subjects or domains where tutoring would be most beneficial
-            3. **Personalized Activities**: Specific activities aligned with the child's learning style
-
-            4. **RECOMMENDED LEARNING MATERIALS** (IMPORTANT):
+            3. **RECOMMENDED LEARNING MATERIALS** (IMPORTANT):
                Recommend 3-5 SPECIFIC products (books, learning tools, stationery, toys, workbooks, flashcards, or games) that parents can purchase to support this child's learning.
 
                Format each product like this (use this EXACT format):
@@ -3273,23 +3271,10 @@ def tutoring_recommendations():
               <li>Another recommended focus area</li>
             </ul>
 
-            <h3>3. Personalized Activities</h3>
-            <ul>
-              <li>Activity aligned with learning style</li>
-              <li>Another recommended activity</li>
-            </ul>
-
-            <h3>4. Recommended Learning Materials</h3>
-            <p>Here are specific products to support {child['name']}'s learning:</p>
-
-            [Include ALL product recommendations using the [PRODUCT_START]...[PRODUCT_END] format]
-
-            <p><strong>Parent Action Plan:</strong> [2-3 sentence summary of what parents should focus on first]</p>
-
             IMPORTANT:
             - DO NOT include Preschool Development Summary
             - DO NOT include Learning Style Analysis
-            - Only output the 4 sections listed above
+            - Only output the 3 sections listed above
             - Be specific and actionable
             - Avoid generic disclaimers
             """
