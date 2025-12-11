@@ -2042,3 +2042,352 @@ html, body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================
+   BEAUTIFUL ACADEMIC PROGRESS SUMMARY
+   ============================ */
+
+/* Main Academic Progress Container */
+.academic-progress-beautiful {
+  background: white;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.academic-progress-beautiful:hover {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+}
+
+/* Beautiful Gradient Header */
+.chart-header-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  padding: 2rem 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-header-gradient::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  animation: float 6s ease-in-out infinite;
+}
+
+.chart-header-gradient::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  left: -5%;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  animation: float 8s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+.header-icon-wrapper {
+  width: 70px;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.academic-progress-beautiful:hover .header-icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.header-text {
+  flex: 1;
+  position: relative;
+  z-index: 2;
+}
+
+.header-text h3 {
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.header-subtitle {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 1rem;
+  margin: 0;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+/* Enhanced Chart Body */
+.chart-body-enhanced {
+  padding: 2.5rem;
+  background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 380px;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+/* Stats Row Below Chart */
+.chart-stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  min-width: 140px;
+}
+
+.stat-badge:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: #667eea;
+}
+
+.stat-badge i {
+  font-size: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stat-badge .stat-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1F2937;
+  line-height: 1;
+}
+
+.stat-badge .stat-label {
+  font-size: 0.85rem;
+  color: #6B7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Beautiful Empty State */
+.empty-state-beautiful {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 350px;
+  text-align: center;
+  padding: 3rem;
+}
+
+.empty-state-icon {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.empty-state-icon i {
+  font-size: 4rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 20px rgba(102, 126, 234, 0);
+  }
+}
+
+.empty-state-beautiful h4 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1F2937;
+  margin-bottom: 1rem;
+}
+
+.empty-state-beautiful p {
+  font-size: 1.05rem;
+  color: #6B7280;
+  margin-bottom: 2rem;
+  max-width: 400px;
+}
+
+/* Beautiful Modern Button */
+.btn-modern-beautiful {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-modern-beautiful::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-modern-beautiful:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+  color: white;
+}
+
+.btn-modern-beautiful:hover::before {
+  left: 100%;
+}
+
+.btn-modern-beautiful i {
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+
+.btn-modern-beautiful:hover i {
+  transform: rotate(90deg);
+}
+
+/* Full Width Chart Card */
+.chart-card-modern-full {
+  margin-bottom: 2.5rem;
+}
+
+/* Responsive Design for Academic Progress */
+@media (max-width: 768px) {
+  .chart-header-gradient {
+    padding: 1.5rem;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .header-text h3 {
+    font-size: 1.5rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .header-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+  }
+
+  .chart-body-enhanced {
+    padding: 1.5rem;
+  }
+
+  .chart-wrapper {
+    height: 300px;
+    padding: 1rem;
+  }
+
+  .chart-stats-row {
+    gap: 1rem;
+  }
+
+  .stat-badge {
+    min-width: 120px;
+    padding: 1rem 1.5rem;
+  }
+
+  .stat-badge .stat-value {
+    font-size: 2rem;
+  }
+
+  .empty-state-beautiful {
+    padding: 2rem 1rem;
+    min-height: 300px;
+  }
+
+  .empty-state-icon {
+    width: 100px;
+    height: 100px;
+  }
+
+  .empty-state-icon i {
+    font-size: 3rem;
+  }
+
+  .empty-state-beautiful h4 {
+    font-size: 1.25rem;
+  }
+
+  .empty-state-beautiful p {
+    font-size: 0.95rem;
+  }
+}
