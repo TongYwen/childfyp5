@@ -2613,6 +2613,7 @@ def preschool_tracker():
                     - End with a one-sentence summary of overall development progress.
                     - Provide the summary in HTML styled.
                     - Do not self introduce yourself.
+                    - Do NOT include any navigation links or "View full" links in your output.
                     """
 
                     model = genai.GenerativeModel("gemini-2.5-flash")
@@ -3057,6 +3058,7 @@ def learning_style():
                 IMPORTANT RULES:
                 - Keep the total length under 180 words.
                 - Use simple, warm, non-technical language suitable for parents.
+                - Do NOT include any navigation links or "View full" links in your output.
 
                 HTML FORMAT:
                 <h5>Learning Style Summary</h5>
@@ -3449,6 +3451,7 @@ def tutoring_recommendations():
             - Keep bullet points SHORT and CONCISE (max 10-20 words each)
             - Be specific and actionable
             - Avoid generic disclaimers
+            - Do NOT include any navigation links or "View full" links in your output
             """
 
             model = genai.GenerativeModel("gemini-2.5-flash")

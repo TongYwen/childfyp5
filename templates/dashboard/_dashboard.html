@@ -84,6 +84,11 @@
                     </div>
                 {% endfor %}
             </div>
+            <div class="insight-footer" style="text-align: center; padding: 10px; border-top: 1px solid rgba(0,0,0,0.1);">
+                <a href="{{ url_for('preschool_tracker') }}" style="color: #0d6efd; text-decoration: none; font-size: 0.9em;">
+                    View full preschool report →
+                </a>
+            </div>
         </div>
 
         <!-- Learning Style -->
@@ -102,6 +107,11 @@
                     </div>
                 {% endfor %}
             </div>
+            <div class="insight-footer" style="text-align: center; padding: 10px; border-top: 1px solid rgba(0,0,0,0.1);">
+                <a href="{{ url_for('learning_style') }}" style="color: #0d6efd; text-decoration: none; font-size: 0.9em;">
+                    View full learning style analysis →
+                </a>
+            </div>
         </div>
 
         <!-- Recommendations -->
@@ -119,6 +129,11 @@
                         <p>Complete assessments for personalized tips</p>
                     </div>
                 {% endfor %}
+            </div>
+            <div class="insight-footer" style="text-align: center; padding: 10px; border-top: 1px solid rgba(0,0,0,0.1);">
+                <a href="{{ url_for('tutoring_recommendations') }}" style="color: #0d6efd; text-decoration: none; font-size: 0.9em;">
+                    View full recommendations →
+                </a>
             </div>
         </div>
     </div>
