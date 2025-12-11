@@ -3238,8 +3238,8 @@ def tutoring_recommendations():
 
             Based on your analysis of the child's profile and background data, provide ONLY these 2 sections:
 
-            1. **Potential Weak Areas**: Identify specific skills that need support
-            2. **Recommended Focus Areas**: Subjects or domains where tutoring would be most beneficial
+            1. **Potential Weak Areas**: Identify specific skills that need support (keep each point SHORT and concise - max 8-10 words)
+            2. **Recommended Focus Areas**: Subjects or domains where tutoring would be most beneficial (keep each point SHORT and concise - max 8-10 words)
 
             Additionally, recommend 3-5 SPECIFIC products (books, learning tools, stationery, toys, workbooks, flashcards, or games) that parents can purchase to support this child's learning.
 
@@ -3261,20 +3261,21 @@ def tutoring_recommendations():
 
             <h3>1. Potential Weak Areas</h3>
             <ul>
-              <li>Specific skill or area that needs support</li>
-              <li>Another weak area with brief explanation</li>
+              <li>Short specific skill (max 8-10 words)</li>
+              <li>Another brief weak area</li>
             </ul>
 
             <h3>2. Recommended Focus Areas</h3>
             <ul>
-              <li>Subject or domain for tutoring</li>
-              <li>Another recommended focus area</li>
+              <li>Brief subject area (max 8-10 words)</li>
+              <li>Another concise focus area</li>
             </ul>
 
             IMPORTANT:
             - DO NOT include Preschool Development Summary
             - DO NOT include Learning Style Analysis
             - Only output the 2 sections listed above plus product recommendations
+            - Keep bullet points SHORT and CONCISE (max 8-10 words each)
             - Be specific and actionable
             - Avoid generic disclaimers
             """
