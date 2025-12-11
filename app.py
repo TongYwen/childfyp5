@@ -3236,12 +3236,12 @@ def tutoring_recommendations():
             IMPORTANT: Use the above data to inform your recommendations, but DO NOT include or repeat
             the Preschool Development Summary or Learning Style Analysis in your output.
 
-            Based on your analysis of the child's profile and background data, provide ONLY these 4 sections:
+            Based on your analysis of the child's profile and background data, provide ONLY these 2 sections:
 
             1. **Potential Weak Areas**: Identify specific skills that need support
             2. **Recommended Focus Areas**: Subjects or domains where tutoring would be most beneficial
-            3. **RECOMMENDED LEARNING MATERIALS** (IMPORTANT):
-               Recommend 3-5 SPECIFIC products (books, learning tools, stationery, toys, workbooks, flashcards, or games) that parents can purchase to support this child's learning.
+
+            Additionally, recommend 3-5 SPECIFIC products (books, learning tools, stationery, toys, workbooks, flashcards, or games) that parents can purchase to support this child's learning.
 
                Format each product like this (use this EXACT format):
                [PRODUCT_START]
@@ -3274,7 +3274,7 @@ def tutoring_recommendations():
             IMPORTANT:
             - DO NOT include Preschool Development Summary
             - DO NOT include Learning Style Analysis
-            - Only output the 3 sections listed above
+            - Only output the 2 sections listed above plus product recommendations
             - Be specific and actionable
             - Avoid generic disclaimers
             """
