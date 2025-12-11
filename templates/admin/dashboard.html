@@ -15,7 +15,7 @@
     <!-- Statistics Cards -->
     <div class="row g-4 mb-4">
         <!-- Total Users Card -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl-4 col-md-6">
             <div class="stat-card stat-card-primary">
                 <div class="stat-icon">
                     <i class="bi bi-people-fill"></i>
@@ -36,7 +36,7 @@
         </div>
 
         <!-- Total Children Card -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl-4 col-md-6">
             <div class="stat-card stat-card-success">
                 <div class="stat-icon">
                     <i class="bi bi-emoji-smile-fill"></i>
@@ -49,88 +49,157 @@
             </div>
         </div>
 
-        <!-- Total Resources Card -->
-        <div class="col-xl-3 col-md-6">
+        <!-- Unread Notifications Card -->
+        <div class="col-xl-4 col-md-6">
             <div class="stat-card stat-card-warning">
                 <div class="stat-icon">
-                    <i class="bi bi-book-fill"></i>
+                    <i class="bi bi-bell-fill"></i>
                 </div>
                 <div class="stat-content">
-                    <div class="stat-label">Resources</div>
-                    <div class="stat-value">{{ stats.total_resources }}</div>
-                    <div class="stat-detail">Educational materials</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Games Card -->
-        <div class="col-xl-3 col-md-6">
-            <div class="stat-card stat-card-info">
-                <div class="stat-icon">
-                    <i class="bi bi-controller"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Mini Games</div>
-                    <div class="stat-value">{{ stats.total_games }}</div>
-                    <div class="stat-detail">Interactive activities</div>
+                    <div class="stat-label">Unread Notifications</div>
+                    <div class="stat-value">{{ stats.unread_notifications }}</div>
+                    <div class="stat-detail">System notifications</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Secondary Stats Row -->
+    <!-- Management Cards Section -->
     <div class="row g-4 mb-4">
-        <!-- Total Tests Card -->
-        <div class="col-xl-4 col-md-6">
-            <div class="stat-card-small stat-card-purple">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon-small">
-                        <i class="bi bi-clipboard-check-fill"></i>
-                    </div>
-                    <div class="ms-3">
-                        <div class="stat-label-small">Learning Style Tests</div>
-                        <div class="stat-value-small">{{ stats.total_tests }}</div>
-                    </div>
-                </div>
-            </div>
+        <div class="col-12">
+            <h4 class="mb-3"><i class="bi bi-grid-3x3-gap-fill text-primary"></i> Management Tools</h4>
         </div>
 
-        <!-- Unread Notifications Card -->
-        <div class="col-xl-4 col-md-6">
-            <div class="stat-card-small stat-card-danger">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon-small">
-                        <i class="bi bi-bell-fill"></i>
-                    </div>
-                    <div class="ms-3">
-                        <div class="stat-label-small">Unread Notifications</div>
-                        <div class="stat-value-small">{{ stats.unread_notifications }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Access Card -->
-        <div class="col-xl-4 col-md-6">
-            <div class="stat-card-small stat-card-teal">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon-small">
-                        <i class="bi bi-speedometer"></i>
-                    </div>
-                    <div class="ms-3">
-                        <div class="stat-label-small">System Status</div>
-                        <div class="stat-value-small text-success">
-                            <i class="bi bi-check-circle-fill"></i> Active
+        <!-- User Management -->
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('admin_users') }}" class="text-decoration-none">
+                <div class="card admin-action-card hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-primary-soft">
+                                <i class="bi bi-people text-primary"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">User Management</h5>
+                        </div>
+                        <p class="card-text text-muted">View, edit, or delete parent/admin accounts</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_users }} total users</small>
+                            <i class="bi bi-arrow-right-circle text-primary"></i>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
+        </div>
+
+        <!-- Inactive Users -->
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('admin_inactive_users') }}" class="text-decoration-none">
+                <div class="card admin-action-card hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-warning-soft">
+                                <i class="bi bi-person-x text-warning"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Inactive Users</h5>
+                        </div>
+                        <p class="card-text text-muted">Monitor and manage inactive accounts</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">Account monitoring</small>
+                            <i class="bi bi-arrow-right-circle text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Notifications -->
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('admin_notifications') }}" class="text-decoration-none">
+                <div class="card admin-action-card hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-danger-soft">
+                                <i class="bi bi-bell text-danger"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Notifications</h5>
+                        </div>
+                        <p class="card-text text-muted">Manage all system notifications</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.unread_notifications }} unread</small>
+                            <i class="bi bi-arrow-right-circle text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Learning Style Tests -->
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('admin_tests') }}" class="text-decoration-none">
+                <div class="card admin-action-card hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-success-soft">
+                                <i class="bi bi-clipboard-check text-success"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Learning Style</h5>
+                        </div>
+                        <p class="card-text text-muted">Create and manage questionnaires</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_tests }} questionnaires</small>
+                            <i class="bi bi-arrow-right-circle text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Educational Resources -->
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('admin_resources') }}" class="text-decoration-none">
+                <div class="card admin-action-card hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-info-soft">
+                                <i class="bi bi-book text-info"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Resources</h5>
+                        </div>
+                        <p class="card-text text-muted">Manage videos, books, games, and articles</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_resources }} resources</small>
+                            <i class="bi bi-arrow-right-circle text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Mini Games -->
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('admin_games') }}" class="text-decoration-none">
+                <div class="card admin-action-card hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="action-icon bg-purple-soft">
+                                <i class="bi bi-controller text-purple"></i>
+                            </div>
+                            <h5 class="card-title mb-0 ms-3">Mini Games</h5>
+                        </div>
+                        <p class="card-text text-muted">Add, edit, or remove educational games</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ stats.total_games }} games</small>
+                            <i class="bi bi-arrow-right-circle text-purple"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 
-    <!-- Main Content Row -->
+    <!-- Recent Activity Section -->
     <div class="row g-4 mb-4">
-        <!-- Recent Activity Section -->
+        <!-- Recent Users -->
         <div class="col-xl-6">
             <div class="card admin-card">
                 <div class="card-header">
@@ -219,256 +288,5 @@
             </div>
         </div>
     </div>
-
-    <!-- Management Cards Section -->
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <h4 class="mb-3"><i class="bi bi-grid-3x3-gap-fill text-primary"></i> Management Tools</h4>
-        </div>
-
-        <!-- User Management -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('admin_users') }}" class="text-decoration-none">
-                <div class="card admin-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-primary-soft">
-                                <i class="bi bi-people text-primary"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">User Management</h5>
-                        </div>
-                        <p class="card-text text-muted">View, edit, or delete parent/admin accounts</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">{{ stats.total_users }} total users</small>
-                            <i class="bi bi-arrow-right-circle text-primary"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Inactive Users -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('admin_inactive_users') }}" class="text-decoration-none">
-                <div class="card admin-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-warning-soft">
-                                <i class="bi bi-person-x text-warning"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Inactive Users</h5>
-                        </div>
-                        <p class="card-text text-muted">Monitor and manage inactive accounts</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Account monitoring</small>
-                            <i class="bi bi-arrow-right-circle text-warning"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Learning Style Tests -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('admin_tests') }}" class="text-decoration-none">
-                <div class="card admin-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-success-soft">
-                                <i class="bi bi-clipboard-check text-success"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Learning Style</h5>
-                        </div>
-                        <p class="card-text text-muted">Create and manage questionnaires</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">{{ stats.total_tests }} questionnaires</small>
-                            <i class="bi bi-arrow-right-circle text-success"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Educational Resources -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('admin_resources') }}" class="text-decoration-none">
-                <div class="card admin-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-info-soft">
-                                <i class="bi bi-book text-info"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Resources</h5>
-                        </div>
-                        <p class="card-text text-muted">Manage videos, books, games, and articles</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">{{ stats.total_resources }} resources</small>
-                            <i class="bi bi-arrow-right-circle text-info"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Mini Games -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('admin_games') }}" class="text-decoration-none">
-                <div class="card admin-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-purple-soft">
-                                <i class="bi bi-controller text-purple"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Mini Games</h5>
-                        </div>
-                        <p class="card-text text-muted">Add, edit, or remove educational games</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">{{ stats.total_games }} games</small>
-                            <i class="bi bi-arrow-right-circle text-purple"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Notifications -->
-        <div class="col-lg-4 col-md-6">
-            <a href="{{ url_for('admin_notifications') }}" class="text-decoration-none">
-                <div class="card admin-action-card hover-lift">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="action-icon bg-danger-soft">
-                                <i class="bi bi-bell text-danger"></i>
-                            </div>
-                            <h5 class="card-title mb-0 ms-3">Notifications</h5>
-                        </div>
-                        <p class="card-text text-muted">Manage all system notifications</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">{{ stats.unread_notifications }} unread</small>
-                            <i class="bi bi-arrow-right-circle text-danger"></i>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-    </div>
-
-    <!-- User Distribution Chart -->
-    <div class="row g-4 mb-4">
-        <div class="col-xl-6">
-            <div class="card admin-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-pie-chart-fill text-primary"></i> User Distribution
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="userDistributionChart" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-6">
-            <div class="card admin-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="bi bi-info-circle-fill text-info"></i> Platform Overview
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="overview-item">
-                        <div class="overview-label">
-                            <i class="bi bi-people-fill text-primary"></i> Total Users
-                        </div>
-                        <div class="overview-value">{{ stats.total_users }}</div>
-                    </div>
-                    <div class="overview-item">
-                        <div class="overview-label">
-                            <i class="bi bi-emoji-smile-fill text-success"></i> Children Profiles
-                        </div>
-                        <div class="overview-value">{{ stats.total_children }}</div>
-                    </div>
-                    <div class="overview-item">
-                        <div class="overview-label">
-                            <i class="bi bi-book-fill text-warning"></i> Educational Resources
-                        </div>
-                        <div class="overview-value">{{ stats.total_resources }}</div>
-                    </div>
-                    <div class="overview-item">
-                        <div class="overview-label">
-                            <i class="bi bi-controller text-info"></i> Mini Games
-                        </div>
-                        <div class="overview-value">{{ stats.total_games }}</div>
-                    </div>
-                    <div class="overview-item mb-0">
-                        <div class="overview-label">
-                            <i class="bi bi-clipboard-check-fill text-purple"></i> Questionnaires
-                        </div>
-                        <div class="overview-value">{{ stats.total_tests }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // User Distribution Chart
-    const ctx = document.getElementById('userDistributionChart').getContext('2d');
-
-    const roleData = {{ stats.role_distribution | tojson }};
-    const labels = roleData.map(item => item.role.charAt(0).toUpperCase() + item.role.slice(1));
-    const data = roleData.map(item => item.count);
-
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Users',
-                data: data,
-                backgroundColor: [
-                    'rgba(102, 126, 234, 0.8)',
-                    'rgba(220, 53, 69, 0.8)',
-                    'rgba(25, 135, 84, 0.8)'
-                ],
-                borderColor: [
-                    'rgba(102, 126, 234, 1)',
-                    'rgba(220, 53, 69, 1)',
-                    'rgba(25, 135, 84, 1)'
-                ],
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        font: {
-                            size: 12
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            label += context.parsed + ' users';
-                            return label;
-                        }
-                    }
-                }
-            }
-        }
-    });
-});
-</script>
 {% endblock %}

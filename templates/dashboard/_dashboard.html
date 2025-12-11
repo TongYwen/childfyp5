@@ -38,259 +38,28 @@
         </div>
     </div>
 
-    <!-- Quick Stats Grid -->
-    <div class="quick-stats-grid">
-        <!-- Total Subjects -->
-        <div class="stat-bubble stat-bubble-coral">
-            <div class="bubble-icon">
-                <i class="bi bi-books"></i>
-            </div>
-            <div class="bubble-content">
-                <div class="bubble-value">{{ subjects|length if subjects else 0 }}</div>
-                <div class="bubble-label">Subjects</div>
-            </div>
-        </div>
+  
+      <!-- Academic Progress Chart - Full Width -->
 
-        <!-- Average Score -->
-        <div class="stat-bubble stat-bubble-teal">
-            <div class="bubble-icon">
-                <i class="bi bi-trophy-fill"></i>
-            </div>
-            <div class="bubble-content">
-                <div class="bubble-value">
-                    {% if scores %}
-                        {{ "%.0f"|format((scores|sum(attribute='score')|float / scores|length) * 100) }}%
-                    {% else %}
-                        -
-                    {% endif %}
+    <div class="chart-card-modern-full">
+        <div class="chart-header">
+            <h3><i class="bi bi-graph-up"></i> Academic Progress Summary</h3>
+        </div>
+        <div class="chart-body">
+            {% if subjects %}
+                <canvas id="academicChart" style="height: 200px;"></canvas>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-clipboard-data"></i>
+                    <p>No academic data yet</p>
+                    <a href="{{ url_for('academic_progress') }}" class="btn-modern btn-modern-coral">
+                        Add First Score
+                    </a>
                 </div>
-                <div class="bubble-label">Avg Score</div>
-            </div>
-        </div>
-
-        <!-- Total Assessments -->
-        <div class="stat-bubble stat-bubble-amber">
-            <div class="bubble-icon">
-                <i class="bi bi-file-earmark-check-fill"></i>
-            </div>
-            <div class="bubble-content">
-                <div class="bubble-value">{{ scores|length if scores else 0 }}</div>
-                <div class="bubble-label">Tests</div>
-            </div>
-        </div>
-
-        <!-- Progress Status -->
-        <div class="stat-bubble stat-bubble-blue">
-            <div class="bubble-icon">
-                {% if scores %}
-                    {% set avg = (scores|sum(attribute='score')|float / scores|length) * 100 %}
-                    {% if avg >= 80 %}
-                        <i class="bi bi-emoji-smile-fill"></i>
-                    {% elif avg >= 60 %}
-                        <i class="bi bi-emoji-neutral-fill"></i>
-                    {% else %}
-                        <i class="bi bi-emoji-frown-fill"></i>
-                    {% endif %}
-                {% else %}
-                    <i class="bi bi-dash-circle-fill"></i>
-                {% endif %}
-            </div>
-            <div class="bubble-content">
-                <div class="bubble-value" style="font-size: 1.1rem;">
-                    {% if scores %}
-                        {% set avg = (scores|sum(attribute='score')|float / scores|length) * 100 %}
-                        {% if avg >= 80 %}
-                            Excellent
-                        {% elif avg >= 60 %}
-                            Good
-                        {% else %}
-                            Growing
-                        {% endif %}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </div>
-                <div class="bubble-label">Status</div>
-            </div>
+            {% endif %}
         </div>
     </div>
-
-    <!-- Progress and Highlights Section -->
-    <div class="dashboard-main-grid">
-        <!-- Academic Progress Chart -->
-        <div class="chart-card-modern">
-            <div class="chart-header">
-                <h3><i class="bi bi-graph-up"></i> Academic Progress</h3>
-            </div>
-            <div class="chart-body">
-                {% if subjects %}
-                    <canvas id="academicChart" style="height: 300px;"></canvas>
-                {% else %}
-                    <div class="empty-state">
-                        <i class="bi bi-clipboard-data"></i>
-                        <p>No academic data yet</p>
-                        <a href="{{ url_for('academic_progress') }}" class="btn-modern btn-modern-coral">
-                            Add First Score
-                        </a>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Quick Highlights -->
-        <div class="highlights-card-modern">
-            <div class="highlight-header">
-                <h3><i class="bi bi-stars"></i> Highlights</h3>
-            </div>
-            <div class="highlight-body">
-                <div class="highlight-item">
-                    <div class="highlight-icon highlight-icon-star">
-                        <i class="bi bi-trophy-fill"></i>
-                    </div>
-                    <div class="highlight-text">
-                        <div class="highlight-label">Best Subject</div>
-                        <div class="highlight-value">
-                            {% if scores and subjects %}
-                                {% set best_subject = namespace(name='N/A', score=0) %}
-                                {% for subject in subjects %}
-                                    {% set subject_scores = scores|selectattr('subject', 'equalto', subject)|list %}
-                                    {% if subject_scores %}
-                                        {% set avg = (subject_scores|sum(attribute='score')|float / subject_scores|length) * 100 %}
-                                        {% if avg > best_subject.score %}
-                                            {% set best_subject.name = subject %}
-                                            {% set best_subject.score = avg %}
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                                {{ best_subject.name }}
-                            {% else %}
-                                Not yet
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="highlight-item">
-                    <div class="highlight-icon highlight-icon-badge">
-                        <i class="bi bi-patch-check-fill"></i>
-                    </div>
-                    <div class="highlight-text">
-                        <div class="highlight-label">High Scores</div>
-                        <div class="highlight-value">
-                            {% if scores %}
-                                {% set high_scores = scores|selectattr('score', 'ge', 0.8)|list|length %}
-                                {{ high_scores }} achievement{{ 's' if high_scores != 1 else '' }}
-                            {% else %}
-                                0 achievements
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="highlight-item">
-                    <div class="highlight-icon highlight-icon-calendar">
-                        <i class="bi bi-calendar-event-fill"></i>
-                    </div>
-                    <div class="highlight-text">
-                        <div class="highlight-label">Last Activity</div>
-                        <div class="highlight-value">
-                            {% if scores %}
-                                {{ scores[-1].date.strftime('%b %d') if scores[-1].date else 'N/A' }}
-                            {% else %}
-                                No data
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Explore Section -->
-    <div class="section-header-modern">
-        <h3><i class="bi bi-compass-fill"></i> Explore Tools</h3>
-        <p>Discover features to support your child's growth</p>
-    </div>
-
-    <div class="explore-grid">
-        <!-- Academic Progress -->
-        <a href="{{ url_for('academic_progress') }}" class="explore-card explore-card-coral">
-            <div class="explore-icon">
-                <i class="bi bi-graph-up"></i>
-            </div>
-            <h4>Academic Progress</h4>
-            <p>Track subject performance</p>
-            <div class="explore-footer">
-                <span>{{ subjects|length if subjects else 0 }} subjects</span>
-                <i class="bi bi-arrow-right"></i>
-            </div>
-        </a>
-
-        <!-- Preschool Tracker -->
-        <a href="{{ url_for('preschool_tracker') }}" class="explore-card explore-card-teal">
-            <div class="explore-icon">
-                <i class="bi bi-balloon-heart-fill"></i>
-            </div>
-            <h4>Preschool Milestones</h4>
-            <p>Developmental tracking</p>
-            <div class="explore-footer">
-                <span>Growth insights</span>
-                <i class="bi bi-arrow-right"></i>
-            </div>
-        </a>
-
-        <!-- Learning Style -->
-        <a href="{{ url_for('learning_style') }}" class="explore-card explore-card-amber">
-            <div class="explore-icon">
-                <i class="bi bi-emoji-smile-fill"></i>
-            </div>
-            <h4>Learning Style</h4>
-            <p>Discover how they learn</p>
-            <div class="explore-footer">
-                <span>Personalized</span>
-                <i class="bi bi-arrow-right"></i>
-            </div>
-        </a>
-
-        <!-- AI Insights -->
-        <a href="{{ url_for('ai_insights') }}" class="explore-card explore-card-blue">
-            <div class="explore-icon">
-                <i class="bi bi-lightbulb-fill"></i>
-            </div>
-            <h4>AI Insights</h4>
-            <p>Smart recommendations</p>
-            <div class="explore-footer">
-                <span>AI-powered</span>
-                <i class="bi bi-arrow-right"></i>
-            </div>
-        </a>
-
-        <!-- Learning Plan -->
-        <a href="{{ url_for('learning_plan') }}" class="explore-card explore-card-purple">
-            <div class="explore-icon">
-                <i class="bi bi-calendar-check-fill"></i>
-            </div>
-            <h4>Learning Plan</h4>
-            <p>Daily activities schedule</p>
-            <div class="explore-footer">
-                <span>Get organized</span>
-                <i class="bi bi-arrow-right"></i>
-            </div>
-        </a>
-
-        <!-- Resources Hub -->
-        <a href="{{ url_for('resources_hub') }}" class="explore-card explore-card-green">
-            <div class="explore-icon">
-                <i class="bi bi-collection-fill"></i>
-            </div>
-            <h4>Resources</h4>
-            <p>Educational materials</p>
-            <div class="explore-footer">
-                <span>Library</span>
-                <i class="bi bi-arrow-right"></i>
-            </div>
-        </a>
-    </div>
+  
 
     <!-- Smart Insights Section -->
     <div class="section-header-modern">
@@ -359,124 +128,74 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const academicCtx = document.getElementById('academicChart');
-  if (!academicCtx) return;
+  if (academicCtx) {
+    const subjects = {{ subjects|tojson }};
+    const allScores = {{ scores|tojson }};
 
-  const subjects = {{ subjects|tojson }};
-  const allScores = {{ scores|tojson }};
+    // Calculate average for each subject
+    const averages = subjects.map(subject => {
+      const subjectScores = allScores.filter(r => r.subject === subject).map(r => r.score);
+      if (subjectScores.length > 0) {
+        return Math.round((subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length) * 100) / 100;
+      }
+      return 0;
+    });
 
-  // Calculate average for each subject
-  const averages = subjects.map(subject => {
-    const subjectScores = allScores
-      .filter(r => r.subject === subject)
-      .map(r => r.score);
+    new Chart(academicCtx, {
+      type: 'bar',
+      data: {
+        labels: subjects,
+        datasets: [{
+          label: 'Average Score',
+          data: averages,
+          backgroundColor: [
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(255, 206, 86, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(153, 102, 255, 0.7)',
+            'rgba(255, 159, 64, 0.7)',
+            'rgba(99, 255, 132, 0.7)'
+          ],
 
-    if (subjectScores.length > 0) {
-      return Math.round(
-        (subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length) * 100
-      ) / 100;
-    }
-    return 0;
-  });
-
-  new Chart(academicCtx, {
-    type: 'bar',
-    data: {
-      labels: subjects,
-      datasets: [{
-        label: 'Average Score',
-        data: averages,
-        backgroundColor: [
-          'rgba(102, 126, 234, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(59, 130, 246, 0.8)',
-          'rgba(147, 51, 234, 0.8)',
-          'rgba(236, 72, 153, 0.8)',
-          'rgba(20, 184, 166, 0.8)'
-        ],
-        borderColor: [
-          'rgba(102, 126, 234, 1)',
-          'rgba(16, 185, 129, 1)',
-          'rgba(245, 158, 11, 1)',
-          'rgba(59, 130, 246, 1)',
-          'rgba(147, 51, 234, 1)',
-          'rgba(236, 72, 153, 1)',
-          'rgba(20, 184, 166, 1)'
-        ],
-        borderWidth: 2,
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          titleFont: {
-            size: 14,
-            weight: 'bold'
-          },
-          bodyFont: {
-            size: 13
-          },
-          borderColor: '#e5e7eb',
-          borderWidth: 1,
-          callbacks: {
-            label: function(context) {
-              return 'Average: ' + (context.parsed.y * 100).toFixed(1) + '%';
-            }
-          }
-        }
+          borderColor: [
+            'rgba(255, 99, 132, 1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(99, 255, 132, 1)'
+          ],
+          borderWidth: 2
+        }]
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 1,
-          ticks: {
-            callback: function(value) {
-              return (value * 100) + '%';
-            },
-            font: {
-              size: 12
-            }
-          },
-          grid: {
-            color: '#f3f4f6'
-          },
-          title: {
-            display: true,
-            text: 'Average Score',
-            font: {
-              size: 13,
-              weight: 'bold'
-            }
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
           }
         },
-        x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 12
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            title: {
+              display: true,
+              text: 'Average Score'
             }
           },
-          title: {
-            display: true,
-            text: 'Subject',
-            font: {
-              size: 13,
-              weight: 'bold'
-            }
+          x: {
+            title: {
+              display: true,
+              text: 'Subject'
+             }
           }
         }
       }
-    }
-  });
+    });
+  }
 });
 </script>
