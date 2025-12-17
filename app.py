@@ -3615,9 +3615,11 @@ def ai_insights():
     subject_scores = defaultdict(list)
     for row in scores:
         sc = row["score"]
-        if sc is None:
+        date_val = row["date"]
+        # Skip rows with None score or None date
+        if sc is None or date_val is None:
             continue
-        subject_scores[row["subject"]].append((row["date"], sc))
+        subject_scores[row["subject"]].append((date_val, sc))
 
     academic_star_data = []
 
