@@ -1848,12 +1848,20 @@ def dashboard():
             # Update the row's date field with the converted date object
             row["date"] = date_value
 
-        # Set date_str for valid date objects
+        # Set date_str and year for valid date objects
         row["date_str"] = row["date"].strftime("%Y-%m")
+        row["year"] = row["date"].year
         valid_scores.append(row)
 
     # Use only valid scores
     scores = valid_scores
+
+    # Filter by most recent year (same as tracker)
+    if scores:
+        years = sorted({row["year"] for row in scores}, reverse=True)
+        selected_year = years[0]  # Default to most recent year
+        scores = [row for row in scores if row["year"] == selected_year]
+
     subjects = sorted({row["subject"] for row in scores})
 
     # --- AI results (preschool, learning style, tutoring) ---
