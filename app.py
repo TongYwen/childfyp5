@@ -2341,8 +2341,22 @@ def academic_progress():
     )
     scores = cursor.fetchall()
     for row in scores:
-        row["date_str"] = row["date"].strftime("%Y-%m")
-        row["year"] = row["date"].year
+        # Convert date to proper date object if needed
+        date_value = row["date"]
+        if isinstance(date_value, (int, str)):
+            # If it's an integer or string, convert to date
+            if isinstance(date_value, int):
+                # Assuming YYYYMMDD format or timestamp
+                date_str = str(date_value)
+                if len(date_str) == 8:  # YYYYMMDD
+                    date_value = datetime.strptime(date_str, "%Y%m%d").date()
+                else:  # Assume it's a timestamp
+                    date_value = datetime.fromtimestamp(date_value).date()
+            else:  # string
+                date_value = datetime.strptime(str(date_value), "%Y-%m-%d").date()
+
+        row["date_str"] = date_value.strftime("%Y-%m")
+        row["year"] = date_value.year
 
     # Define default subjects for preschool
     default_subjects = [
