@@ -2355,6 +2355,9 @@ def academic_progress():
             else:  # string
                 date_value = datetime.strptime(str(date_value), "%Y-%m-%d").date()
 
+            # Update the row's date field with the converted date object
+            row["date"] = date_value
+
         row["date_str"] = date_value.strftime("%Y-%m")
         row["year"] = date_value.year
 
