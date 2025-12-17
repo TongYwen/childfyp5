@@ -2340,9 +2340,16 @@ def academic_progress():
         (child_id,),
     )
     scores = cursor.fetchall()
+      # Filter and process scores to ensure valid dates
+
+    valid_scores = []
     for row in scores:
-        # Convert date to proper date object if needed
         date_value = row["date"]
+        # Skip rows with None/NULL dates
+        if date_value is None:
+            continue
+
+        # Convert date to proper date object if needed
         if isinstance(date_value, (int, str)):
             # If it's an integer or string, convert to date
             if isinstance(date_value, int):
@@ -2358,8 +2365,13 @@ def academic_progress():
             # Update the row's date field with the converted date object
             row["date"] = date_value
 
-        row["date_str"] = date_value.strftime("%Y-%m")
-        row["year"] = date_value.year
+        # Set date_str and year for valid date objects
+        row["date_str"] = row["date"].strftime("%Y-%m")
+        row["year"] = row["date"].year
+        valid_scores.append(row)
+
+    # Use only valid scores
+    scores = valid_scores
 
     # Define default subjects for preschool
     default_subjects = [
