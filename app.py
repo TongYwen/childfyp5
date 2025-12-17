@@ -1823,13 +1823,38 @@ def dashboard():
         (child_id,),
     )
     scores = cursor.fetchall()
-    subjects = sorted({row["subject"] for row in scores})
 
+    # Filter and process scores to ensure valid dates (same logic as tracker)
+    valid_scores = []
     for row in scores:
-        if isinstance(row["date"], (datetime, date)):
-            row["date_str"] = row["date"].strftime("%Y-%m")
-        else:
-            row["date_str"] = str(row["date"])[:7]
+        date_value = row["date"]
+        # Skip rows with None/NULL dates
+        if date_value is None:
+            continue
+
+        # Convert date to proper date object if needed
+        if isinstance(date_value, (int, str)):
+            # If it's an integer or string, convert to date
+            if isinstance(date_value, int):
+                # Assuming YYYYMMDD format or timestamp
+                date_str = str(date_value)
+                if len(date_str) == 8:  # YYYYMMDD
+                    date_value = datetime.strptime(date_str, "%Y%m%d").date()
+                else:  # Assume it's a timestamp
+                    date_value = datetime.fromtimestamp(date_value).date()
+            else:  # string
+                date_value = datetime.strptime(str(date_value), "%Y-%m-%d").date()
+
+            # Update the row's date field with the converted date object
+            row["date"] = date_value
+
+        # Set date_str for valid date objects
+        row["date_str"] = row["date"].strftime("%Y-%m")
+        valid_scores.append(row)
+
+    # Use only valid scores
+    scores = valid_scores
+    subjects = sorted({row["subject"] for row in scores})
 
     # --- AI results (preschool, learning style, tutoring) ---
     cursor.execute(
