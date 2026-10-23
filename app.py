@@ -1,6 +1,6 @@
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, flash, session, jsonify, has_request_context
+    url_for, flash, session, jsonify, has_request_context, abort
 )
 from flask_bcrypt import Bcrypt
 from flask_login import (
@@ -11,6 +11,7 @@ from flask_mail import Mail, Message
 from flask_apscheduler import APScheduler
 from itsdangerous import URLSafeTimedSerializer
 import mysql.connector
+from werkzeug.exceptions import NotFound
 from datetime import date, datetime, timedelta
 from config import Config
 from functools import wraps
@@ -838,6 +839,68 @@ def roles_required(*roles):
 
     return wrapper
 
+
+
+def preschool_cache_payload(child, assessments):
+    """Cache all analysis inputs, not just the assessment rows."""
+    return json.dumps({
+        "child": {key: child.get(key) for key in
+                  ("name", "gender", "dob", "grade_level")},
+        "assessments": sorted(assessments, key=lambda row: row["id"]),
+        "benchmark": benchmark_df.to_json(orient="split", date_format="iso"),
+    }, default=str, sort_keys=True)
+
+
+def clean_preschool_html(text):
+    """Remove an enclosing Markdown fence from the HTML fragment."""
+    text = text.strip()
+    text = re.sub(r"^```(?:html)?\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*```$", "", text).strip()
+    if not text:
+        raise ValueError("The AI returned an empty report")
+    return text
+
+
+def require_owned_child(child_id):
+    """Reject missing/foreign children without revealing whether they exist."""
+    try:
+        if isinstance(child_id, bool):
+            abort(404)
+        child_id = int(str(child_id))
+        if child_id <= 0:
+            abort(404)
+    except (ValueError, TypeError):
+        abort(404)
+
+    conn = get_db_conn()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT id FROM children WHERE id=%s AND parent_id=%s",
+            (child_id, current_user.id),
+        )
+        if cursor.fetchone() is None:
+            abort(404)
+    finally:
+        cursor.close()
+        conn.close()
+    return child_id
+
+
+def selected_child_required(f):
+    """Recheck ownership on every request, including an old selected session."""
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        child_id = session.get("selected_child")
+        if child_id is not None:
+            try:
+                session["selected_child"] = require_owned_child(child_id)
+            except NotFound:
+                # Never retain a selection that failed authorization/validation.
+                session.pop("selected_child", None)
+                raise
+        return f(*args, **kwargs)
+    return wrapped
 
 
 def save_question_media(file_storage, test_id, index):
@@ -1784,7 +1847,7 @@ def select_child():
     if request.method == "POST":
         child_id = request.form.get("child_id")
         if child_id:
-            session["selected_child"] = child_id
+            session["selected_child"] = require_owned_child(child_id)
             return redirect(url_for("dashboard"))
         flash("Please choose a child.", "warning")
 
@@ -1793,6 +1856,7 @@ def select_child():
 
 @app.route("/dashboard")
 @login_required
+@selected_child_required
 def dashboard():
     import re  # used for small text extractions
 
@@ -2230,6 +2294,7 @@ def add_child():
 @app.route("/profile/child/delete/<int:child_id>", methods=["POST"])
 @login_required
 def delete_child(child_id):
+    child_id = require_owned_child(child_id)
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute(
@@ -2247,6 +2312,7 @@ def delete_child(child_id):
 @app.route("/profile/child/edit/<int:child_id>", methods=["POST"])
 @login_required
 def edit_child(child_id):
+    child_id = require_owned_child(child_id)
     name = request.form["name"]
     dob = request.form["dob"]
     age_input = request.form["age"]
@@ -2312,6 +2378,7 @@ def edit_child(child_id):
 # -------------------------------------------------
 @app.route("/academic", methods=["GET", "POST"])
 @login_required
+@selected_child_required
 def academic_progress():
     child_id = session.get("selected_child")
     if not child_id:
@@ -2477,6 +2544,7 @@ def academic_progress():
 
 @app.route("/academic/delete/<int:id>", methods=["POST"])
 @login_required
+@selected_child_required
 def delete_academic(id):
     child_id = session.get("selected_child")
     if not child_id:
@@ -2484,10 +2552,20 @@ def delete_academic(id):
 
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM academic_scores WHERE id = %s", (id,))
+    cursor.execute(
+        """
+        DELETE scores FROM academic_scores scores
+        JOIN children child ON child.id = scores.child_id
+        WHERE scores.id=%s AND scores.child_id=%s AND child.parent_id=%s
+        """,
+        (id, child_id, current_user.id),
+    )
+    deleted = cursor.rowcount
     conn.commit()
     cursor.close()
     conn.close()
+    if not deleted:
+        abort(404)
     flash("Academic record deleted successfully.", "success")
     return redirect(url_for("academic_progress"))
 
@@ -2503,6 +2581,7 @@ def calculate_months_difference(start_date, end_date):
 
 @app.route("/dashboard/preschool", methods=["GET", "POST"])
 @login_required
+@selected_child_required
 def preschool_tracker():
     child_id = session.get("selected_child")
     if not child_id:
@@ -2511,7 +2590,10 @@ def preschool_tracker():
     conn = get_db_conn()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT * FROM children WHERE id=%s", (child_id,))
+    cursor.execute(
+        "SELECT * FROM children WHERE id=%s AND parent_id=%s",
+        (child_id, current_user.id),
+    )
     child = cursor.fetchone()
     if not child:
         flash("Child not found.", "danger")
@@ -2576,7 +2658,7 @@ def preschool_tracker():
         return redirect(url_for("preschool_tracker"))
 
     cursor.execute(
-        "SELECT * FROM preschool_assessments WHERE child_id=%s ORDER BY date DESC",
+        "SELECT * FROM preschool_assessments WHERE child_id=%s ORDER BY date DESC, id DESC",
         (child_id,),
     )
     assessments = cursor.fetchall()
@@ -2615,7 +2697,7 @@ def preschool_tracker():
     )
     ai_row = cursor.fetchone()
 
-    data_payload = json.dumps(assessments, default=str)
+    data_payload = preschool_cache_payload(child, assessments)
     benchmark_summary = None
     last_generated = None
     use_cached = False
@@ -2626,8 +2708,8 @@ def preschool_tracker():
             "Add some assessments to view AI analysis.</p>"
         )
     else:
-        if ai_row and ai_row.get("data") == data_payload:
-            benchmark_summary = ai_row["result"]
+        if ai_row and ai_row.get("data") == data_payload and (ai_row.get("result") or "").strip():
+            benchmark_summary = clean_preschool_html(ai_row["result"])
             last_generated = ai_row["updated_at"] or ai_row["created_at"]
             use_cached = True
         else:
@@ -2665,13 +2747,14 @@ def preschool_tracker():
 
                     Follow the below rules strictly:
                     - End with a one-sentence summary of overall development progress.
-                    - Provide the summary in HTML styled.
+                    - Return an HTML fragment using h3 headings, paragraphs and lists.
+                    - Do not use Markdown code fences, inline styles, or a full HTML document.
                     - Do not self introduce yourself.
                     """
 
                     model = genai.GenerativeModel("gemini-2.5-flash")
-                    response = model.generate_content(prompt)
-                    benchmark_summary = response.text.strip()
+                    response = model.generate_content(prompt, generation_config={"temperature": 0})
+                    benchmark_summary = clean_preschool_html(response.text)
 
                     if ai_row:
                         cursor.execute(
@@ -2728,6 +2811,7 @@ def preschool_tracker():
 
 @app.route("/dashboard/preschool/regenerate", methods=["POST"])
 @login_required
+@selected_child_required
 def regenerate_preschool_benchmark():
     child_id = session.get("selected_child")
     if not child_id:
@@ -2736,7 +2820,10 @@ def regenerate_preschool_benchmark():
     conn = get_db_conn()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT * FROM children WHERE id=%s", (child_id,))
+    cursor.execute(
+        "SELECT * FROM children WHERE id=%s AND parent_id=%s",
+        (child_id, current_user.id),
+    )
     child = cursor.fetchone()
     if not child:
         cursor.close()
@@ -2749,7 +2836,7 @@ def regenerate_preschool_benchmark():
     )
 
     cursor.execute(
-        "SELECT * FROM preschool_assessments WHERE child_id=%s ORDER BY date DESC",
+        "SELECT * FROM preschool_assessments WHERE child_id=%s ORDER BY date DESC, id DESC",
         (child_id,),
     )
     assessments = cursor.fetchall()
@@ -2787,6 +2874,24 @@ def regenerate_preschool_benchmark():
             else None
         )
 
+    data_payload = preschool_cache_payload(child, assessments)
+    cursor.execute(
+        "SELECT * FROM ai_results WHERE child_id=%s AND module='preschool' LIMIT 1",
+        (child_id,),
+    )
+    ai_row = cursor.fetchone()
+    if ai_row and ai_row.get("data") == data_payload and (ai_row.get("result") or "").strip():
+        last_generated = ai_row["updated_at"] or ai_row["created_at"]
+        benchmark_summary = clean_preschool_html(ai_row["result"])
+        cursor.close()
+        conn.close()
+        return jsonify({
+            "success": True,
+            "use_cached": True,
+            "benchmark_summary": benchmark_summary,
+            "last_generated": last_generated.strftime("%Y-%m-%d %H:%M:%S") if last_generated else None,
+        })
+
     try:
         # Filter out assessments with None age_months to avoid "None months" in AI prompt
         valid_assessments = [a for a in assessments if a.get('age_months') is not None]
@@ -2820,21 +2925,14 @@ def regenerate_preschool_benchmark():
 
         Follow the below rules strictly:
         - End with a one-sentence summary of overall development progress.
-        - Provide the summary in HTML styled.
+        - Return an HTML fragment using h3 headings, paragraphs and lists.
+                    - Do not use Markdown code fences, inline styles, or a full HTML document.
         - Do not self introduce yourself.
         """
 
         model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(prompt)
-        benchmark_summary = response.text.strip()
-
-        data_payload = json.dumps(assessments, default=str)
-
-        cursor.execute(
-            "SELECT * FROM ai_results WHERE child_id=%s AND module='preschool' LIMIT 1",
-            (child_id,),
-        )
-        ai_row = cursor.fetchone()
+        response = model.generate_content(prompt, generation_config={"temperature": 0})
+        benchmark_summary = clean_preschool_html(response.text)
 
         if ai_row:
             cursor.execute(
@@ -2868,6 +2966,7 @@ def regenerate_preschool_benchmark():
 
         return jsonify({
             "success": True,
+            "use_cached": False,
             "benchmark_summary": benchmark_summary,
             "last_generated": last_generated
         })
@@ -2885,6 +2984,7 @@ def regenerate_preschool_benchmark():
 
 @app.route("/preschool/delete/<int:id>", methods=["POST"])
 @login_required
+@selected_child_required
 def delete_preschool(id):
     child_id = session.get("selected_child")
     if not child_id:
@@ -2896,8 +2996,12 @@ def delete_preschool(id):
     try:
         # Verify the record belongs to the current user's child before deleting
         cursor.execute(
-            "DELETE FROM preschool_assessments WHERE id = %s AND child_id = %s",
-            (id, child_id)
+            """
+            DELETE assessment FROM preschool_assessments assessment
+            JOIN children child ON child.id = assessment.child_id
+            WHERE assessment.id=%s AND assessment.child_id=%s AND child.parent_id=%s
+            """,
+            (id, child_id, current_user.id)
         )
 
         if cursor.rowcount == 0:
@@ -2921,6 +3025,7 @@ def delete_preschool(id):
 # -------------------------------------------------
 @app.route("/dashboard/learning", methods=["GET", "POST"])
 @login_required
+@selected_child_required
 def learning_style():
     child_id = session.get("selected_child")
     if not child_id:
@@ -3288,6 +3393,7 @@ def get_test_questions(test_id):
 @app.route("/learning/take_test/<int:child_id>", methods=["POST"])
 @login_required
 def take_learning_test(child_id):
+    child_id = require_owned_child(child_id)
     conn = get_db_conn()
     cursor = conn.cursor()
 
@@ -3334,6 +3440,7 @@ def take_learning_test(child_id):
 @app.route("/learning/observation/submit/<int:child_id>", methods=["POST"])
 @login_required
 def submit_learning_observation(child_id):
+    child_id = require_owned_child(child_id)
     observation = request.form.get("observation")
     if not observation:
         flash("Observation cannot be empty.", "danger")
@@ -3382,6 +3489,7 @@ def delete_learning_observation(observation_id):
 # --- TUTORING ---
 @app.route("/dashboard/tutoring")
 @login_required
+@selected_child_required
 def tutoring_recommendations():
     child_id = session.get("selected_child")
     if not child_id:
@@ -3426,14 +3534,17 @@ def tutoring_recommendations():
     )
     cached = cursor.fetchone()
 
-    regen = request.args.get("regen")
-
     data_payload = json.dumps(
-        {"learning": learning_result, "preschool": preschool_result},
+        {"learning": learning_result, "preschool": preschool_result,
+         "child": {key: child.get(key) for key in
+                   ("name", "age", "dob", "grade_level")}},
         ensure_ascii=False,
         indent=2,
+        default=str,
+        sort_keys=True,
     )
-    use_cached = cached and cached["data"] == data_payload and not regen
+    # Refresh requests reuse the report when all analysis inputs are unchanged.
+    use_cached = bool(cached and cached["data"] == data_payload and (cached.get("result") or "").strip())
     tutoring_summary = cached["result"] if use_cached else None
     last_generated = cached["updated_at"] if cached else None
 
@@ -3442,7 +3553,7 @@ def tutoring_recommendations():
             "<p class='text-muted'>No AI analysis data available yet. "
             "Run preschool and learning style assessments first.</p>"
         )
-    elif regen == "1" or not use_cached:
+    elif not use_cached:
         try:
             prompt = f"""
             You are an expert child education advisor specializing in personalized learning recommendations.
@@ -3502,12 +3613,14 @@ def tutoring_recommendations():
             - Only output the 2 sections listed above plus product recommendations
             - Keep bullet points SHORT and CONCISE (max 10-20 words each)
             - Be specific and actionable
+            - Use HTML strong tags for emphasis, never Markdown asterisks or code fences
             - Avoid generic disclaimers
             """
 
             model = genai.GenerativeModel("gemini-2.5-flash")
-            response = model.generate_content(prompt)
-            full_response = response.text.strip()
+            response = model.generate_content(prompt, generation_config={"temperature": 0})
+            full_response = clean_preschool_html(response.text)
+            full_response = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", full_response)
 
             # Extract product recommendations
             tutoring_summary, products = extract_products_from_response(full_response, child_id, cursor)
@@ -3590,6 +3703,7 @@ def tutoring_recommendations():
 # --- AI INSIGHTS ---
 @app.route("/dashboard/insights")
 @login_required
+@selected_child_required
 def ai_insights():
     child_id = session.get("selected_child")
     if not child_id:
@@ -3908,6 +4022,7 @@ RULES:
 # --- LEARNING PLAN ---
 @app.route("/dashboard/plan")
 @login_required
+@selected_child_required
 def learning_plan():
     child_id = session.get("selected_child")
     if not child_id:
@@ -4118,6 +4233,7 @@ GENERAL RULES:
 # --- RESOURCES HUB ---
 @app.route("/dashboard/resources")
 @login_required
+@selected_child_required
 def resources_hub():
     child_id = session.get("selected_child")
     if not child_id:
@@ -4209,6 +4325,7 @@ def resources_hub():
 
 @app.route("/dashboard/games")
 @login_required
+@selected_child_required
 def dashboard_games():
     # Ensure a child is selected
     child_id = session.get("selected_child")
@@ -4280,6 +4397,7 @@ def dashboard_games():
 
 @app.route("/dashboard/games/<int:game_id>")
 @login_required
+@selected_child_required
 def play_mini_game(game_id):
     child_id = session.get("selected_child")
     if not child_id:
